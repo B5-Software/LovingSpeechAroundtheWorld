@@ -167,15 +167,19 @@ class DirectoryApp {
         const forwardedAddress = relay.forwardedAddress
           || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
         const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
-        const relayAddress = forwardedAddress
-          ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
-          : relay.clientDerivedUrl
-            || relay.connectionMeta?.clientDerivedUrl
-            || relay.resolvedPublicUrl
-            || relay.publicUrl
-            || relay.onion
-            || relay.id
-            || '未提供';
+        const forwardedProtocol = (relay.connectionMeta?.clientProtocol || relay.connectionMeta?.forwardedProto || 'http').toLowerCase();
+        const forwardedUrl = relay.forwardedUrl
+          || this.buildForwardedUrl(forwardedAddress, forwardedPort, forwardedProtocol);
+        const relayAddress = forwardedUrl
+          || (forwardedAddress
+            ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
+            : relay.clientDerivedUrl
+              || relay.connectionMeta?.clientDerivedUrl
+              || relay.resolvedPublicUrl
+              || relay.publicUrl
+              || relay.onion
+              || relay.id)
+          || '未提供';
         const reportedAddress = relay.reportedPublicUrl && relay.reportedPublicUrl !== relayAddress
           ? relay.reportedPublicUrl
           : null;
@@ -353,9 +357,10 @@ class DirectoryApp {
     const forwardedAddress = relay.forwardedAddress
       || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
     const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
-    const forwardedDisplay = forwardedAddress
-      ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
-      : null;
+    const forwardedProtocol = (relay.connectionMeta?.clientProtocol || relay.connectionMeta?.forwardedProto || 'http').toLowerCase();
+    const forwardedDisplay = relay.forwardedUrl
+      || this.buildForwardedUrl(forwardedAddress, forwardedPort, forwardedProtocol)
+      || (forwardedAddress ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}` : null);
     const latencyLabel = typeof relay.latencyMs === 'number'
       ? `${relay.latencyMs}ms`
       : (typeof relay.latency === 'number' ? `${relay.latency}ms` : '未知');
@@ -389,7 +394,7 @@ class DirectoryApp {
         客户端协议: ${(relay.connectionMeta.clientProtocol || relay.connectionMeta.forwardedProto || 'http').toUpperCase()}<br>
         转发链: ${this.formatForwardedChain(relay.connectionMeta.forwardedChain)}<br>
         声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
-        解析URL: <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
+        解析URL: <code class="mono">${forwardedDisplay || relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
       `
       : '暂未记录连接来源';
 
@@ -522,7 +527,9 @@ class DirectoryApp {
   // 工具函数
   buildRelayKey(relay) {
     return String(
-      relay?.resolvedPublicUrl
+      relay?.forwardedUrl
+      || relay?.forwardedAddress
+      || relay?.resolvedPublicUrl
       || relay?.publicUrl
       || relay?.onion
       || relay?.id
@@ -547,6 +554,23 @@ class DirectoryApp {
       return '—';
     }
     return chain.map((entry) => entry || '未知').join(' → ');
+  }
+
+  ensureBracketedHost(host) {
+    if (!host) return null;
+    if (host.includes(':') && !host.startsWith('[')) {
+      return `[${host}]`;
+    }
+    return host;
+  }
+
+  buildForwardedUrl(address, port, protocol = 'http') {
+    if (!address) return null;
+    const safeProto = protocol?.toLowerCase().replace(/:$/, '') || 'http';
+    const bracketedHost = this.ensureBracketedHost(address);
+    const normalizedPort = port ? String(port).trim() : '';
+    const portSegment = normalizedPort ? `:${normalizedPort}` : '';
+    return `${safeProto}://${bracketedHost}${portSegment}`;
   }
 
   formatUptime(seconds) {
