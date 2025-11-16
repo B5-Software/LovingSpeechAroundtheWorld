@@ -299,35 +299,56 @@ class RelayApp {
       if (result.success) {
         this.addLog('success', '✅ 配置已保存');
         await this.loadDirectoryStatus();
+        return true;
       } else {
         this.addLog('error', `保存失败: ${result.message}`);
+        return false;
       }
     } catch (error) {
       console.error('保存配置失败:', error);
       this.addLog('error', `保存配置失败: ${error.message}`);
+      return false;
     }
   }
 
-  // 注册到目录（先保存配置，再向目录报告）
+  // 注册到目录（保存配置并向目录报告）
   async registerToDirectory(formData) {
     try {
-      // 先保存配置
-      await this.saveDirectoryConfig(formData);
+      // 详细调试 FormData
+      console.log('🔍 FormData 所有字段:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value);
+      }
       
-      // 然后触发向目录报告
-      console.log('📤 准备向目录报告注册');
+      const rawPublicAccessUrl = formData.get('publicAccessUrl');
+      console.log('🔍 获取到的 publicAccessUrl 原始值:', rawPublicAccessUrl, '(类型:', typeof rawPublicAccessUrl, ')');
       
-      const response = await fetch('/api/relay/directory/report', {
+      const config = {
+        directoryUrl: formData.get('directoryUrl'),
+        nickname: (formData.get('nickname') || '').trim(),
+        publicAccessUrl: rawPublicAccessUrl ? rawPublicAccessUrl.trim() : '',
+        heartbeatInterval: parseInt(formData.get('heartbeatInterval'), 10)
+      };
+      
+      console.log('📤 准备注册到目录，配置:', config);
+      
+      const response = await fetch('/api/relay/directory/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify(config)
       });
       
       const result = await response.json();
       
-      console.log('📥 目录报告响应:', result);
+      console.log('📥 注册响应:', result);
       
       if (result.success) {
+        this.addLog('success', '✅ 成功注册到目录服务器');
+        await this.loadDirectoryStatus();
+      } else {
+        this.addLog('error', `注册失败: ${result.message}`);
+      }
+    } catch (error) {
         this.addLog('success', '✅ 成功注册到目录服务器');
         await this.loadDirectoryStatus();
       } else {
