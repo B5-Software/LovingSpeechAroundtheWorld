@@ -164,13 +164,18 @@ class DirectoryApp {
       tbody.innerHTML = relays.map((relay) => {
         const relayKey = this.buildRelayKey(relay);
         this.relayLookup.set(relayKey, relay);
-        const relayAddress = relay.clientDerivedUrl
-          || relay.connectionMeta?.clientDerivedUrl
-          || relay.resolvedPublicUrl
-          || relay.publicUrl
-          || relay.onion
-          || relay.id
-          || '未提供';
+        const forwardedAddress = relay.forwardedAddress
+          || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
+        const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
+        const relayAddress = forwardedAddress
+          ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
+          : relay.clientDerivedUrl
+            || relay.connectionMeta?.clientDerivedUrl
+            || relay.resolvedPublicUrl
+            || relay.publicUrl
+            || relay.onion
+            || relay.id
+            || '未提供';
         const reportedAddress = relay.reportedPublicUrl && relay.reportedPublicUrl !== relayAddress
           ? relay.reportedPublicUrl
           : null;
@@ -345,6 +350,12 @@ class DirectoryApp {
       return;
     }
 
+    const forwardedAddress = relay.forwardedAddress
+      || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
+    const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
+    const forwardedDisplay = forwardedAddress
+      ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
+      : null;
     const latencyLabel = typeof relay.latencyMs === 'number'
       ? `${relay.latencyMs}ms`
       : (typeof relay.latency === 'number' ? `${relay.latency}ms` : '未知');
@@ -376,6 +387,7 @@ class DirectoryApp {
         客户端IP: ${relay.lastSeenIp || relay.connectionMeta.clientAddress || '未知'}<br>
         客户端端口: ${relay.connectionMeta.clientPort || '未知'}<br>
         客户端协议: ${(relay.connectionMeta.clientProtocol || relay.connectionMeta.forwardedProto || 'http').toUpperCase()}<br>
+        转发链: ${this.formatForwardedChain(relay.connectionMeta.forwardedChain)}<br>
         声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
         解析URL: <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
       `
@@ -404,7 +416,7 @@ class DirectoryApp {
             </div>
             <div class="detail-item full">
               <label>地址</label>
-              <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta?.clientDerivedUrl || relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
+              <code class="mono">${forwardedDisplay || relay.clientDerivedUrl || relay.connectionMeta?.clientDerivedUrl || relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
             </div>
             <div class="detail-item full">
               <label>指纹</label>
@@ -517,6 +529,24 @@ class DirectoryApp {
       || relay?.fingerprint
       || 'relay'
     );
+  }
+
+  pickForwardedAddress(chain) {
+    if (!Array.isArray(chain) || !chain.length) {
+      return null;
+    }
+    const cleaned = chain
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean);
+    const ipv4 = cleaned.find((entry) => entry && entry.includes('.') && !entry.includes(':'));
+    return ipv4 || cleaned[0] || null;
+  }
+
+  formatForwardedChain(chain) {
+    if (!Array.isArray(chain) || !chain.length) {
+      return '—';
+    }
+    return chain.map((entry) => entry || '未知').join(' → ');
   }
 
   formatUptime(seconds) {

@@ -28,6 +28,25 @@ function sanitizeIp(raw) {
   return value;
 }
 
+function preferForwardedAddress(chain = []) {
+  if (!Array.isArray(chain)) return null;
+  const cleaned = chain
+    .map((entry) => sanitizeIp(entry))
+    .filter(Boolean);
+  const ipv4 = cleaned.find((entry) => entry && entry.includes('.') && !entry.includes(':'));
+  return ipv4 || cleaned[0] || null;
+}
+
+function buildUrlFromParts(protocol, host, port) {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) return null;
+  const normalizedProtocol = normalizeProtocol(protocol || 'http:');
+  const normalizedPort = port ? String(port).trim() : '';
+  const hostSegment = normalizedHost;
+  const portSegment = normalizedPort ? `:${normalizedPort}` : '';
+  return `${normalizedProtocol}//${hostSegment}${portSegment}`;
+}
+
 function captureClientNetwork(req) {
   const forwarded = req.headers['x-forwarded-for'];
     const cfConnectingIp = req.headers['cf-connecting-ip'];
@@ -432,33 +451,43 @@ export function createDirectoryServer() {
   app.get('/api/directory/relays', requireAuth, async (req, res) => {
     const relays = await state.listRelays();
     const now = Date.now();
-    const formattedRelays = relays.map((relay) => ({
-      onion: relay.onion,
-      publicUrl: relay.publicUrl,
-      resolvedPublicUrl: relay.connectionMeta?.resolvedPublicUrl || relay.publicUrl || null,
-      clientDerivedUrl: relay.clientDerivedUrl
-        || relay.connectionMeta?.clientDerivedUrl
-        || relay.publicUrl
-        || null,
-      reportedPublicUrl: relay.connectionMeta?.reportedPublicUrl || relay.publicUrl || null,
-      nickname: relay.nickname || relay.onion?.substring(0, 8) || 'N/A',
-      fingerprint: relay.fingerprint || relay.onion?.substring(0, 16) || 'N/A',
-      isOnline: new Date(relay.lastSeen) > now - 300000 || (relay.reachability ?? 0) >= 0.5,
-      reachability: relay.reachability,
-      reputation: computeRelayReputation(relay),
-      latencyMs: relay.latencyMs ?? null,
-      gfwBlocked: relay.gfwBlocked || false,
-      lastSeen: relay.lastSeen,
-      lastHeartbeat: relay.lastHeartbeat || relay.lastSeen,
-      createdAt: relay.createdAt,
-      chainSummary: relay.chainSummary,
-      lastSeenIp: relay.lastSeenIp || relay.connectionMeta?.clientAddress || null,
-      connectionMeta: relay.connectionMeta || null,
-      metricsSampledAt: relay.metricsSampledAt || null,
-      metricsSource: relay.metricsSource || null,
-      metricsError: relay.metricsError || null,
-      metricsNotes: relay.metricsNotes || null
-    }));
+    const formattedRelays = relays.map((relay) => {
+      const forwardedAddress = preferForwardedAddress(relay.connectionMeta?.forwardedChain || []);
+      const forwardedUrl = buildUrlFromParts(
+        relay.connectionMeta?.clientProtocol || relay.connectionMeta?.forwardedProto || null,
+        forwardedAddress,
+        relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || null
+      );
+      return {
+        forwardedAddress,
+        forwardedUrl,
+        onion: relay.onion,
+        publicUrl: relay.publicUrl,
+        resolvedPublicUrl: relay.connectionMeta?.resolvedPublicUrl || relay.publicUrl || null,
+        clientDerivedUrl: relay.clientDerivedUrl
+          || relay.connectionMeta?.clientDerivedUrl
+          || relay.publicUrl
+          || null,
+        reportedPublicUrl: relay.connectionMeta?.reportedPublicUrl || relay.publicUrl || null,
+        nickname: relay.nickname || relay.onion?.substring(0, 8) || 'N/A',
+        fingerprint: relay.fingerprint || relay.onion?.substring(0, 16) || 'N/A',
+        isOnline: new Date(relay.lastSeen) > now - 300000 || (relay.reachability ?? 0) >= 0.5,
+        reachability: relay.reachability,
+        reputation: computeRelayReputation(relay),
+        latencyMs: relay.latencyMs ?? null,
+        gfwBlocked: relay.gfwBlocked || false,
+        lastSeen: relay.lastSeen,
+        lastHeartbeat: relay.lastHeartbeat || relay.lastSeen,
+        createdAt: relay.createdAt,
+        chainSummary: relay.chainSummary,
+        lastSeenIp: relay.lastSeenIp || relay.connectionMeta?.clientAddress || null,
+        connectionMeta: relay.connectionMeta || null,
+        metricsSampledAt: relay.metricsSampledAt || null,
+        metricsSource: relay.metricsSource || null,
+        metricsError: relay.metricsError || null,
+        metricsNotes: relay.metricsNotes || null
+      };
+    });
     res.json({ relays: formattedRelays });
   });
 
