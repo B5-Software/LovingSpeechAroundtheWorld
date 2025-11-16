@@ -433,6 +433,7 @@ select.form-input optgroup {
 }
 
 .toggle-switch.tile {
+  display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -441,6 +442,35 @@ select.form-input optgroup {
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid var(--glass-medium);
   gap: 1rem;
+  cursor: pointer;
+}
+
+.toggle-switch.tile > div {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-switch.tile .toggle-label {
+  margin: 0;
+  color: var(--soft-white);
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.toggle-switch.tile .toggle-hint {
+  display: inline;
+  font-size: 0.85rem;
+  color: var(--muted-gray);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.toggle-switch.tile .toggle-slider {
+  flex-shrink: 0;
 }
 
 .toggle-switch input[type="checkbox"] {
@@ -649,25 +679,6 @@ select.form-input optgroup {
 
 .security-download small {
   color: var(--muted-gray);
-}
-
-.toggle-label {
-  margin-left: 0.75rem;
-  color: var(--muted-gray);
-  font-size: 0.9rem;
-}
-
-.toggle-switch.tile .toggle-label {
-  margin-left: 0;
-  color: var(--soft-white);
-  font-weight: 600;
-}
-
-.toggle-hint {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--muted-gray);
-  margin-top: 0.15rem;
 }
 
 .table-responsive {
