@@ -124,10 +124,15 @@ class RelayApp {
       const response = await fetch('/api/relay/directory/status');
       const data = await response.json();
       
+      console.log('📡 加载目录状态:', data);
+      
       const badge = document.getElementById('directory-status-badge');
       const fingerprintInput = document.getElementById('relay-fingerprint');
       const nicknameInput = document.querySelector('[name="nickname"]');
       const publicAccessUrlInput = document.querySelector('[name="publicAccessUrl"]');
+      
+      console.log('🔍 publicAccessUrl input元素:', publicAccessUrlInput);
+      console.log('🔍 从API获取的publicAccessUrl值:', data.publicAccessUrl);
       
       if (data.registered) {
         badge.textContent = '已注册';
@@ -148,7 +153,11 @@ class RelayApp {
       }
       
       if (publicAccessUrlInput) {
-        publicAccessUrlInput.value = data.publicAccessUrl || '';
+        const valueToSet = data.publicAccessUrl || '';
+        publicAccessUrlInput.value = valueToSet;
+        console.log('✅ 已设置publicAccessUrl输入框的值为:', valueToSet);
+      } else {
+        console.error('❌ 找不到publicAccessUrl输入框元素');
       }
     } catch (error) {
       console.error('加载目录状态失败:', error);
@@ -263,6 +272,8 @@ class RelayApp {
         heartbeatInterval: parseInt(formData.get('heartbeatInterval'), 10)
       };
       
+      console.log('📤 准备注册到目录，配置:', config);
+      
       const response = await fetch('/api/relay/directory/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -270,6 +281,8 @@ class RelayApp {
       });
       
       const result = await response.json();
+      
+      console.log('📥 注册响应:', result);
       
       if (result.success) {
         this.addLog('success', '成功注册到目录服务器');

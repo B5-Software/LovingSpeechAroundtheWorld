@@ -191,18 +191,22 @@ export function createRelayServer() {
   app.get('/api/relay/directory/status', requireAuth, async (req, res) => {
     const config = await state.config.get();
     await state.ensureFingerprint(config.onion);
-    res.json({
+    const statusData = {
       registered: !!config.directoryUrl,
       directoryUrl: config.directoryUrl,
       nickname: config.nickname,
       publicAccessUrl: config.publicAccessUrl || '',
       fingerprint: state.fingerprint || 'N/A',
       lastReport: state.lastReportInfo || null
-    });
+    };
+    console.log('📡 返回目录状态:', statusData);
+    res.json(statusData);
   });
 
   app.post('/api/relay/directory/register', requireAuth, async (req, res) => {
     try {
+      console.log('📥 收到注册请求，body:', req.body);
+      
       // 确保保存所有配置字段包括nickname和publicAccessUrl
       const normalizedDirectoryUrl = typeof req.body.directoryUrl === 'string'
         ? req.body.directoryUrl.trim()
@@ -232,10 +236,17 @@ export function createRelayServer() {
         }
       }
       
+      console.log('💾 准备保存配置更新:', updateData);
+      
       await state.config.update(updateData);
+      
+      const savedConfig = await state.config.get();
+      console.log('✅ 配置已保存，当前publicAccessUrl:', savedConfig.publicAccessUrl);
+      
       const result = await state.reportToDirectory('register');
       res.json({ success: true, ...result });
     } catch (error) {
+      console.error('❌ 注册失败:', error);
       res.json({ success: false, message: error.message });
     }
   });
