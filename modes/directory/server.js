@@ -330,7 +330,13 @@ export function createDirectoryServer() {
   app.post('/api/relays', async (req, res) => {
     try {
       const network = captureClientNetwork(req);
-      const resolvedPublicUrl = deriveRelayPublicUrl(req.body?.publicUrl, network);
+      const forwardedAddress = preferForwardedAddress(network.forwardedChain || []);
+      const forwardedUrl = buildUrlFromParts(
+        network.clientProtocol || network.forwardedProto || 'http',
+        forwardedAddress,
+        network.forwardedPort || network.clientPort || null
+      );
+      const resolvedPublicUrl = forwardedUrl || deriveRelayPublicUrl(req.body?.publicUrl, network);
       const relayPayload = {
         ...req.body,
         publicUrl: resolvedPublicUrl || req.body?.publicUrl || null,
