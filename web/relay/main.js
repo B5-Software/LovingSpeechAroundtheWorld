@@ -268,7 +268,15 @@ class RelayApp {
   // 保存目录配置（不注册）
   async saveDirectoryConfig(formData) {
     try {
+      // 详细调试 FormData
+      console.log('🔍 FormData 所有字段:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value);
+      }
+      
       const rawPublicAccessUrl = formData.get('publicAccessUrl');
+      console.log('🔍 获取到的 publicAccessUrl 原始值:', rawPublicAccessUrl, '(类型:', typeof rawPublicAccessUrl, ')');
+      
       const config = {
         directoryUrl: formData.get('directoryUrl'),
         nickname: (formData.get('nickname') || '').trim(),
