@@ -13,16 +13,48 @@ const logger = createLogger('client-state');
 export class ClientState {
   constructor() {
     this.vault = new SecureKeyVault('client');
-    this.blockStore = new BlockStore({ filePath: path.join(modeDataPath('client'), 'blocks.json') });
+    this.blockStore = null; // 延迟初始化，根据 directoryUrl 确定路径
     this.config = new ModeConfig('client', {
       directoryUrl: 'http://localhost:4600',
       preferredRelay: 'http://localhost:4700'
     });
   }
 
-  async init() {
+  // 从 URL 提取域名作为目录名
+  getDirectoryDomain(directoryUrl) {
+    if (!directoryUrl) return 'default';
+    try {
+      const url = new URL(directoryUrl);
+      // 移除端口号，只保留域名，例如 example.com:4600 -> example.com
+      return url.hostname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    } catch {
+      // 如果解析失败，使用默认
+      return 'default';
+    }
+  }
+
+  // 获取或创建对应目录的 BlockStore
+  async getBlockStore() {
+    const cfg = await this.config.get();
+    const domain = this.getDirectoryDomain(cfg.directoryUrl);
+    const blocksDir = path.join(modeDataPath('client'), 'blocks', domain);
+    const blockFilePath = path.join(blocksDir, 'blocks.json');
+    
+    // 如果已有 BlockStore 且路径匹配，直接返回
+    if (this.blockStore && this.blockStore.filePath === blockFilePath) {
+      return this.blockStore;
+    }
+    
+    // 创建新的 BlockStore
+    logger.info(`初始化区块存储: ${blockFilePath}`);
+    this.blockStore = new BlockStore({ filePath: blockFilePath });
     await this.blockStore.init();
+    return this.blockStore;
+  }
+
+  async init() {
     await this.config.get();
+    await this.getBlockStore(); // 初始化 BlockStore
   }
 
   decodeVaultKey(rawKey) {
@@ -92,7 +124,8 @@ export class ClientState {
     if (!data?.blocks) {
       return { updated: false, reason: 'Relay did not provide blocks' };
     }
-    const result = await this.blockStore.syncFromRemote(data.blocks);
+    const blockStore = await this.getBlockStore();
+    const result = await blockStore.syncFromRemote(data.blocks);
     return { ...result, relayUrl };
   }
 
@@ -100,7 +133,8 @@ export class ClientState {
     const key = await this.vault.findKey(user.id, this.decodeVaultKey(user.vaultKey), keyId);
     if (!key) throw new Error('Key not found');
     const fingerprint = fingerprintPublicKey(key.publicKey);
-    const entries = await this.blockStore.findLettersByFingerprint(fingerprint);
+    const blockStore = await this.getBlockStore();
+    const entries = await blockStore.findLettersByFingerprint(fingerprint);
     return entries.map(({ block, letter }) => {
       try {
         const data = decryptLetter(key.privateKey, letter.payload);
