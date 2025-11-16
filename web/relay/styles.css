@@ -279,6 +279,16 @@ body {
   color: var(--primary);
 }
 
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
 .btn-group {
   display: flex;
   gap: 12px;

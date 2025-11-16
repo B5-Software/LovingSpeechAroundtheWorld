@@ -38,6 +38,10 @@ class RelayApp {
     document.getElementById('refresh-btn').addEventListener('click', () => this.loadData());
     
     // 目录注册
+    document.getElementById('save-config-btn').addEventListener('click', () => {
+      const form = document.getElementById('directory-register-form');
+      this.saveDirectoryConfig(new FormData(form));
+    });
     document.getElementById('directory-register-form').addEventListener('submit', (e) => {
       e.preventDefault();
       this.registerToDirectory(new FormData(e.target));
@@ -261,8 +265,8 @@ class RelayApp {
     }
   }
 
-  // 注册到目录
-  async registerToDirectory(formData) {
+  // 保存目录配置（不注册）
+  async saveDirectoryConfig(formData) {
     try {
       const rawPublicAccessUrl = formData.get('publicAccessUrl');
       const config = {
@@ -272,9 +276,9 @@ class RelayApp {
         heartbeatInterval: parseInt(formData.get('heartbeatInterval'), 10)
       };
       
-      console.log('📤 准备注册到目录，配置:', config);
+      console.log('💾 准备保存配置（不注册）:', config);
       
-      const response = await fetch('/api/relay/directory/register', {
+      const response = await fetch('/api/relay/directory/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -282,10 +286,41 @@ class RelayApp {
       
       const result = await response.json();
       
-      console.log('📥 注册响应:', result);
+      console.log('📥 保存配置响应:', result);
       
       if (result.success) {
-        this.addLog('success', '成功注册到目录服务器');
+        this.addLog('success', '✅ 配置已保存');
+        await this.loadDirectoryStatus();
+      } else {
+        this.addLog('error', `保存失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('保存配置失败:', error);
+      this.addLog('error', `保存配置失败: ${error.message}`);
+    }
+  }
+
+  // 注册到目录（先保存配置，再向目录报告）
+  async registerToDirectory(formData) {
+    try {
+      // 先保存配置
+      await this.saveDirectoryConfig(formData);
+      
+      // 然后触发向目录报告
+      console.log('📤 准备向目录报告注册');
+      
+      const response = await fetch('/api/relay/directory/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
+      const result = await response.json();
+      
+      console.log('📥 目录报告响应:', result);
+      
+      if (result.success) {
+        this.addLog('success', '✅ 成功注册到目录服务器');
         await this.loadDirectoryStatus();
       } else {
         this.addLog('error', `注册失败: ${result.message}`);

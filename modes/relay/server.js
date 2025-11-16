@@ -203,6 +203,66 @@ export function createRelayServer() {
     res.json(statusData);
   });
 
+  // 仅保存配置，不向目录报告
+  app.post('/api/relay/directory/config', requireAuth, async (req, res) => {
+    try {
+      console.log('💾 收到保存配置请求，body:', req.body);
+      
+      const normalizedDirectoryUrl = typeof req.body.directoryUrl === 'string'
+        ? req.body.directoryUrl.trim()
+        : req.body.directoryUrl;
+      const normalizedHeartbeat = Number.parseInt(req.body.heartbeatInterval, 10);
+      const normalizedNickname = typeof req.body.nickname === 'string'
+        ? req.body.nickname.trim()
+        : req.body.nickname;
+      const rawPublicAccessUrl = typeof req.body.publicAccessUrl === 'string'
+        ? req.body.publicAccessUrl.trim()
+        : req.body.publicAccessUrl;
+
+      const updateData = {
+        directoryUrl: normalizedDirectoryUrl || req.body.directoryUrl,
+        heartbeatInterval: Number.isFinite(normalizedHeartbeat) ? normalizedHeartbeat : req.body.heartbeatInterval
+      };
+      
+      if (normalizedNickname !== undefined) {
+        updateData.nickname = normalizedNickname;
+      }
+      
+      if (req.body.publicAccessUrl !== undefined) {
+        const sanitizedAccessUrl = rawPublicAccessUrl || '';
+        updateData.publicAccessUrl = sanitizedAccessUrl;
+        if (sanitizedAccessUrl) {
+          updateData.publicUrl = sanitizedAccessUrl;
+        }
+      }
+      
+      console.log('💾 准备保存配置更新:', updateData);
+      
+      await state.config.update(updateData);
+      
+      const savedConfig = await state.config.get();
+      console.log('✅ 配置已保存，当前publicAccessUrl:', savedConfig.publicAccessUrl);
+      
+      res.json({ success: true, config: savedConfig });
+    } catch (error) {
+      console.error('❌ 保存配置失败:', error);
+      res.json({ success: false, message: error.message });
+    }
+  });
+
+  // 触发向目录报告（使用已保存的配置）
+  app.post('/api/relay/directory/report', requireAuth, async (req, res) => {
+    try {
+      console.log('📤 触发向目录报告');
+      const result = await state.reportToDirectory('register');
+      console.log('✅ 报告成功:', result);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('❌ 报告失败:', error);
+      res.json({ success: false, message: error.message });
+    }
+  });
+
   app.post('/api/relay/directory/register', requireAuth, async (req, res) => {
     try {
       console.log('📥 收到注册请求，body:', req.body);
