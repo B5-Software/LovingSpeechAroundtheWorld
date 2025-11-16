@@ -135,6 +135,7 @@ relay
   .option('--directory <url>', 'Directory server URL')
   .option('--onion <onion>', 'Relay onion address')
   .option('--public <url>', 'Public HTTP URL')
+  .option('--public-access <url>', 'External access URL shared with directory/clients')
   .option('--latency <ms>', 'Latency in milliseconds')
   .option('--reachability <ratio>', 'Reachability score 0-1')
   .option('--gfw <flag>', 'Whether blocked by GFW')
@@ -145,6 +146,13 @@ relay
     if (opts.directory) payload.directoryUrl = opts.directory;
     if (opts.onion) payload.onion = opts.onion;
     if (opts.public) payload.publicUrl = opts.public;
+    if (opts.publicAccess !== undefined) {
+      const sanitizedAccessUrl = opts.publicAccess.trim();
+      payload.publicAccessUrl = sanitizedAccessUrl;
+      if (sanitizedAccessUrl) {
+        payload.publicUrl = sanitizedAccessUrl;
+      }
+    }
     if (!payload.metrics) payload.metrics = (await state.config.get()).metrics || {};
     if (opts.latency) payload.metrics.latencyMs = Number(opts.latency);
     if (opts.reachability) payload.metrics.reachability = Number(opts.reachability);

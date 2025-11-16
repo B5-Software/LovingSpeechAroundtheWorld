@@ -30,6 +30,12 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function normalizeUrl(value) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  return trimmed || '';
+}
+
 export class RelayState {
   constructor() {
     this.dataRoot = modeDataPath('relay');
@@ -43,6 +49,7 @@ export class RelayState {
       directoryUrl: 'http://localhost:4600',
       onion: 'relay.local',
       publicUrl: 'http://localhost:4700',
+      publicAccessUrl: '',
       metrics: buildRelayMetrics({ reachability: 0.9, latencyMs: 120 }),
       activeGenesisHash: null
     });
@@ -65,10 +72,31 @@ export class RelayState {
     await fs.ensureDir(this.chainRoot);
     await this.migrateLegacyChainIfNeeded();
     const cfg = await this.config.get();
-    await this.ensureFingerprint(cfg.onion);
-    await this.ensureChainForGenesis(cfg.activeGenesisHash, { allowRenameToActual: !cfg.activeGenesisHash });
+    const normalizedConfig = await this.ensurePublicAccessAlignment(cfg);
+    const activeConfig = normalizedConfig || cfg;
+    await this.ensureFingerprint(activeConfig.onion);
+    await this.ensureChainForGenesis(activeConfig.activeGenesisHash, { allowRenameToActual: !activeConfig.activeGenesisHash });
     await this.loadPendingQueue();
     this.processQueueSoon();
+  }
+
+  async ensurePublicAccessAlignment(cfg) {
+    if (!cfg) return null;
+    const sanitizedAccessUrl = normalizeUrl(cfg.publicAccessUrl);
+    if (!sanitizedAccessUrl) {
+      if (cfg.publicAccessUrl !== '') {
+        return this.config.update({ publicAccessUrl: '' });
+      }
+      return cfg;
+    }
+    const currentPublicUrl = normalizeUrl(cfg.publicUrl);
+    if (currentPublicUrl === sanitizedAccessUrl && cfg.publicAccessUrl === sanitizedAccessUrl) {
+      return cfg;
+    }
+    return this.config.update({
+      publicAccessUrl: sanitizedAccessUrl,
+      publicUrl: sanitizedAccessUrl
+    });
   }
 
   async ensureFingerprint(onion) {
@@ -354,10 +382,12 @@ export class RelayState {
       }
       const summary = await this.blockStore.getChainSummary();
       const fingerprint = await this.ensureFingerprint(cfg.onion);
+      const sanitizedPublicAccessUrl = normalizeUrl(cfg.publicAccessUrl);
+      const effectivePublicUrl = sanitizedPublicAccessUrl || cfg.publicUrl;
       const payload = {
         onion: cfg.onion,
-        publicUrl: cfg.publicUrl,
-        publicAccessUrl: cfg.publicAccessUrl || '',
+        publicUrl: effectivePublicUrl,
+        publicAccessUrl: sanitizedPublicAccessUrl,
         nickname: cfg.nickname || cfg.onion?.substring(0, 8) || 'Anonymous',
         fingerprint,
         latencyMs: cfg.metrics?.latencyMs,

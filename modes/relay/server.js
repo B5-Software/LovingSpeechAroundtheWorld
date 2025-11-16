@@ -204,17 +204,32 @@ export function createRelayServer() {
   app.post('/api/relay/directory/register', requireAuth, async (req, res) => {
     try {
       // 确保保存所有配置字段包括nickname和publicAccessUrl
+      const normalizedDirectoryUrl = typeof req.body.directoryUrl === 'string'
+        ? req.body.directoryUrl.trim()
+        : req.body.directoryUrl;
+      const normalizedHeartbeat = Number.parseInt(req.body.heartbeatInterval, 10);
+      const normalizedNickname = typeof req.body.nickname === 'string'
+        ? req.body.nickname.trim()
+        : req.body.nickname;
+      const rawPublicAccessUrl = typeof req.body.publicAccessUrl === 'string'
+        ? req.body.publicAccessUrl.trim()
+        : req.body.publicAccessUrl;
+
       const updateData = {
-        directoryUrl: req.body.directoryUrl,
-        heartbeatInterval: req.body.heartbeatInterval
+        directoryUrl: normalizedDirectoryUrl || req.body.directoryUrl,
+        heartbeatInterval: Number.isFinite(normalizedHeartbeat) ? normalizedHeartbeat : req.body.heartbeatInterval
       };
       
-      if (req.body.nickname !== undefined) {
-        updateData.nickname = req.body.nickname;
+      if (normalizedNickname !== undefined) {
+        updateData.nickname = normalizedNickname;
       }
       
       if (req.body.publicAccessUrl !== undefined) {
-        updateData.publicAccessUrl = req.body.publicAccessUrl;
+        const sanitizedAccessUrl = rawPublicAccessUrl || '';
+        updateData.publicAccessUrl = sanitizedAccessUrl;
+        if (sanitizedAccessUrl) {
+          updateData.publicUrl = sanitizedAccessUrl;
+        }
       }
       
       await state.config.update(updateData);

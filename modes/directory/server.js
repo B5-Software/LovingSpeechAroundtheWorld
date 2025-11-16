@@ -474,6 +474,7 @@ export function createDirectoryServer() {
         forwardedUrl,
         onion: relay.onion,
         publicUrl: relay.publicUrl,
+        publicAccessUrl: relay.publicAccessUrl || null,
         resolvedPublicUrl: relay.connectionMeta?.resolvedPublicUrl || relay.publicUrl || null,
         clientDerivedUrl: relay.clientDerivedUrl
           || relay.connectionMeta?.clientDerivedUrl

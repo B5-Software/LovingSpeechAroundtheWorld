@@ -255,11 +255,12 @@ class RelayApp {
   // 注册到目录
   async registerToDirectory(formData) {
     try {
+      const rawPublicAccessUrl = formData.get('publicAccessUrl');
       const config = {
         directoryUrl: formData.get('directoryUrl'),
-        nickname: formData.get('nickname') || '',
-        publicAccessUrl: formData.get('publicAccessUrl') || '',
-        heartbeatInterval: parseInt(formData.get('heartbeatInterval'))
+        nickname: (formData.get('nickname') || '').trim(),
+        publicAccessUrl: rawPublicAccessUrl ? rawPublicAccessUrl.trim() : '',
+        heartbeatInterval: parseInt(formData.get('heartbeatInterval'), 10)
       };
       
       const response = await fetch('/api/relay/directory/register', {
