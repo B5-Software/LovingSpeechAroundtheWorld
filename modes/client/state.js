@@ -53,8 +53,18 @@ export class ClientState {
     if (!key) throw new Error('Key not found');
     const payload = encryptLetter(key.publicKey, text, metadata);
     const ownerFingerprint = fingerprintPublicKey(key.publicKey);
-    const targetRelay = relayUrl || (await this.config.get()).preferredRelay;
+    
+    // 优先使用参数指定的 relayUrl，其次使用配置的 preferredRelay，最后从目录自动选择
+    const cfg = await this.config.get();
+    let targetRelay = relayUrl || cfg.preferredRelay;
+    
+    if (!targetRelay && cfg.directoryUrl) {
+      const relay = await chooseRelay(cfg.directoryUrl);
+      targetRelay = relay?.publicAccessUrl || relay?.publicUrl || relay?.onion;
+    }
+    
     if (!targetRelay) throw new Error('No relay URL configured');
+    
     const endpoint = `${targetRelay.replace(/\/$/, '')}/api/letters`;
     await fetchJson(endpoint, {
       method: 'POST',
@@ -72,7 +82,7 @@ export class ClientState {
     let relayUrl = cfg.preferredRelay;
     if (!relayUrl && cfg.directoryUrl) {
       const relay = await chooseRelay(cfg.directoryUrl);
-      relayUrl = relay?.publicUrl || relay?.onion;
+      relayUrl = relay?.publicAccessUrl || relay?.publicUrl || relay?.onion;
     }
     if (!relayUrl) {
       return { updated: false, reason: 'No relay to sync from' };
