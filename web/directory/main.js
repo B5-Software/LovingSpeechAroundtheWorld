@@ -374,6 +374,8 @@ class DirectoryApp {
         <strong>连接来源</strong><br>
         最近上报: ${this.formatTime(relay.connectionMeta.resolvedAt)}<br>
         客户端IP: ${relay.lastSeenIp || relay.connectionMeta.clientAddress || '未知'}<br>
+        客户端端口: ${relay.connectionMeta.clientPort || '未知'}<br>
+        客户端协议: ${(relay.connectionMeta.clientProtocol || relay.connectionMeta.forwardedProto || 'http').toUpperCase()}<br>
         声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
         解析URL: <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
       `

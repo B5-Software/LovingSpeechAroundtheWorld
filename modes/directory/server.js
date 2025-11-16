@@ -30,18 +30,49 @@ function sanitizeIp(raw) {
 
 function captureClientNetwork(req) {
   const forwarded = req.headers['x-forwarded-for'];
-  const forwardedChain = typeof forwarded === 'string'
-    ? forwarded.split(',').map((entry) => sanitizeIp(entry)).filter(Boolean)
-    : [];
-  const forwardedIp = forwardedChain[0] || null;
-  const socketAddr = sanitizeIp(req.socket?.remoteAddress || req.connection?.remoteAddress);
-  const clientAddress = sanitizeIp(forwardedIp || socketAddr);
-  return {
-    clientAddress,
-    clientHost: clientAddress?.replace(/^\[(.*)]$/, '$1') || null,
-    forwardedChain,
-    rawRemoteAddress: socketAddr
-  };
+    const cfConnectingIp = req.headers['cf-connecting-ip'];
+    const forwardedChain = typeof forwarded === 'string'
+      ? forwarded.split(',').map((entry) => sanitizeIp(entry)).filter(Boolean)
+      : [];
+    const cfIp = sanitizeIp(typeof cfConnectingIp === 'string' ? cfConnectingIp.split(',')[0] : null);
+    if (cfIp && !forwardedChain.includes(cfIp)) {
+      forwardedChain.unshift(cfIp);
+    }
+    const forwardedIp = forwardedChain[0] || null;
+    const socketAddr = sanitizeIp(req.socket?.remoteAddress || req.connection?.remoteAddress);
+    const clientAddress = sanitizeIp(forwardedIp || cfIp || socketAddr);
+    const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+    const forwardedProto = typeof forwardedProtoHeader === 'string'
+      ? forwardedProtoHeader.split(',')[0].trim().toLowerCase()
+      : null;
+    const cfVisitor = req.headers['cf-visitor'];
+    let cfVisitorProto = null;
+    if (typeof cfVisitor === 'string') {
+      try {
+        const visitor = JSON.parse(cfVisitor);
+        if (visitor && typeof visitor.scheme === 'string') {
+          cfVisitorProto = visitor.scheme.toLowerCase();
+        }
+      } catch (err) {
+        // ignore parse errors
+      }
+    }
+    const clientProtocol = cfVisitorProto || forwardedProto || (req.secure ? 'https' : 'http');
+    const forwardedPortHeader = req.headers['x-forwarded-port'] || req.headers['cf-connecting-port'];
+    const forwardedPort = typeof forwardedPortHeader === 'string'
+      ? forwardedPortHeader.split(',')[0].trim()
+      : null;
+    const clientPort = forwardedPort || req.headers['x-real-port'] || req.socket?.remotePort || null;
+    return {
+      clientAddress,
+      clientHost: clientAddress?.replace(/^\[(.*)]$/, '$1') || null,
+      forwardedChain,
+      rawRemoteAddress: socketAddr,
+      clientProtocol,
+      forwardedProto: forwardedProto || cfVisitorProto || null,
+      forwardedPort,
+      clientPort: clientPort ? String(clientPort) : null
+    };
 }
 
 function parseUrlFlexible(value) {
@@ -63,27 +94,64 @@ function isLoopbackHost(hostname) {
   return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
-function deriveRelayPublicUrl(reportedUrl, clientHost, defaultPort = 4700) {
+function normalizeProtocol(value, fallback = 'http:') {
+  if (!value) return fallback;
+  const trimmed = value.toString().trim().toLowerCase();
+  if (!trimmed) return fallback;
+  return trimmed.endsWith(':') ? trimmed : `${trimmed}:`;
+}
+
+function normalizePort(port, protocol, defaultPort = 4700) {
+  if (port) {
+    return String(port).trim();
+  }
+  if (protocol === 'https:') return '443';
+  if (protocol === 'http:') return String(defaultPort);
+  return String(defaultPort);
+}
+
+function normalizeHost(host) {
+  if (!host) return null;
+  const trimmed = host.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes(':') && !trimmed.startsWith('[') && !trimmed.endsWith(']') && trimmed.includes(':')) {
+    return `[${trimmed}]`;
+  }
+  return trimmed;
+}
+
+function deriveRelayPublicUrl(reportedUrl, networkHints = {}, defaultPort = 4700) {
   const parsed = parseUrlFlexible(reportedUrl);
+  const protocolHint = normalizeProtocol(
+    networkHints.clientProtocol
+      || networkHints.forwardedProto
+      || parsed?.protocol
+      || 'http:'
+  );
+  const chosenHost = normalizeHost(networkHints.clientHost || parsed?.hostname || parsed?.host);
+  const chosenPort = normalizePort(
+    networkHints.forwardedPort
+      || parsed?.port
+      || networkHints.clientPort,
+    protocolHint,
+    defaultPort
+  );
+
   if (parsed) {
-    if (clientHost) {
-      parsed.hostname = clientHost;
+    if (chosenHost) {
+      parsed.hostname = chosenHost.replace(/^\[(.*)]$/, '$1');
     }
-    if (!parsed.port) {
-      if (parsed.protocol === 'https:') {
-        parsed.port = '443';
-      } else if (parsed.protocol === 'http:') {
-        parsed.port = String(defaultPort);
-      }
-    }
+    parsed.protocol = protocolHint;
+    parsed.port = chosenPort;
     return parsed.toString().replace(/\/$/, '');
   }
-  if (!clientHost) {
-    return reportedUrl || null;
+
+  if (!chosenHost) {
+    return null;
   }
-  const protocol = reportedUrl?.startsWith('https') ? 'https:' : 'http:';
-  const synthetic = new URL(`${protocol}//${clientHost}:${defaultPort}`);
-  return synthetic.toString().replace(/\/$/, '');
+  const hostSegment = normalizeHost(chosenHost) || chosenHost;
+  const urlString = `${protocolHint}//${hostSegment}${chosenPort ? `:${chosenPort}` : ''}`;
+  return urlString.replace(/\/$/, '');
 }
 
 function isLikelyGfwError(error) {
@@ -243,10 +311,11 @@ export function createDirectoryServer() {
   app.post('/api/relays', async (req, res) => {
     try {
       const network = captureClientNetwork(req);
-      const resolvedPublicUrl = deriveRelayPublicUrl(req.body?.publicUrl, network.clientHost);
+      const resolvedPublicUrl = deriveRelayPublicUrl(req.body?.publicUrl, network);
       const relayPayload = {
         ...req.body,
         publicUrl: resolvedPublicUrl || req.body?.publicUrl || null,
+        clientDerivedUrl: resolvedPublicUrl || null,
         lastSeenIp: network.clientAddress,
         connectionMeta: {
           reportedPublicUrl: req.body?.publicUrl || null,
@@ -255,6 +324,10 @@ export function createDirectoryServer() {
           clientAddress: network.clientAddress,
           forwardedChain: network.forwardedChain,
           rawRemoteAddress: network.rawRemoteAddress,
+          clientProtocol: network.clientProtocol,
+          forwardedProto: network.forwardedProto,
+          clientPort: network.clientPort,
+          forwardedPort: network.forwardedPort,
           resolvedAt: new Date().toISOString()
         }
       };
@@ -363,7 +436,10 @@ export function createDirectoryServer() {
       onion: relay.onion,
       publicUrl: relay.publicUrl,
       resolvedPublicUrl: relay.connectionMeta?.resolvedPublicUrl || relay.publicUrl || null,
-      clientDerivedUrl: relay.connectionMeta?.clientDerivedUrl || relay.publicUrl || null,
+      clientDerivedUrl: relay.clientDerivedUrl
+        || relay.connectionMeta?.clientDerivedUrl
+        || relay.publicUrl
+        || null,
       reportedPublicUrl: relay.connectionMeta?.reportedPublicUrl || relay.publicUrl || null,
       nickname: relay.nickname || relay.onion?.substring(0, 8) || 'N/A',
       fingerprint: relay.fingerprint || relay.onion?.substring(0, 16) || 'N/A',
