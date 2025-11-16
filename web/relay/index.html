@@ -100,6 +100,12 @@
           </div>
           
           <div class="form-group">
+            <label class="form-label"><i class="fas fa-globe"></i> 对外访问URL</label>
+            <input name="publicAccessUrl" class="form-input" placeholder="https://example.com:4700（可选，留空则使用检测到的地址）" value="" />
+            <small class="form-hint">客户端将使用此URL与中继通信，留空则由目录自动检测</small>
+          </div>
+          
+          <div class="form-group">
             <label class="form-label"><i class="fas fa-fingerprint"></i> 节点指纹</label>
             <input id="relay-fingerprint" class="form-input mono" readonly placeholder="自动生成" />
           </div>

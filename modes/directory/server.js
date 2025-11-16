@@ -337,9 +337,14 @@ export function createDirectoryServer() {
         network.forwardedPort || network.clientPort || null
       );
       const resolvedPublicUrl = forwardedUrl || deriveRelayPublicUrl(req.body?.publicUrl, network);
+      
+      // 优先使用Relay自己配置的publicAccessUrl
+      const finalAccessUrl = req.body?.publicAccessUrl || resolvedPublicUrl || req.body?.publicUrl || null;
+      
       const relayPayload = {
         ...req.body,
-        publicUrl: resolvedPublicUrl || req.body?.publicUrl || null,
+        publicUrl: finalAccessUrl,
+        publicAccessUrl: req.body?.publicAccessUrl || '',
         clientDerivedUrl: resolvedPublicUrl || null,
         lastSeenIp: network.clientAddress,
         connectionMeta: {

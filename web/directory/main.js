@@ -164,22 +164,18 @@ class DirectoryApp {
       tbody.innerHTML = relays.map((relay) => {
         const relayKey = this.buildRelayKey(relay);
         this.relayLookup.set(relayKey, relay);
-        const forwardedAddress = relay.forwardedAddress
-          || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
-        const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
-        const forwardedProtocol = (relay.connectionMeta?.clientProtocol || relay.connectionMeta?.forwardedProto || 'http').toLowerCase();
-        const forwardedUrl = relay.forwardedUrl
-          || this.buildForwardedUrl(forwardedAddress, forwardedPort, forwardedProtocol);
-        const relayAddress = forwardedUrl
-          || (forwardedAddress
-            ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}`
-            : relay.clientDerivedUrl
-              || relay.connectionMeta?.clientDerivedUrl
-              || relay.resolvedPublicUrl
-              || relay.publicUrl
-              || relay.onion
-              || relay.id)
+        
+        // 优先使用Relay自己配置的publicAccessUrl
+        const relayAddress = relay.publicAccessUrl
+          || relay.forwardedUrl
+          || relay.clientDerivedUrl
+          || relay.connectionMeta?.clientDerivedUrl
+          || relay.resolvedPublicUrl
+          || relay.publicUrl
+          || relay.onion
+          || relay.id
           || '未提供';
+        
         const reportedAddress = relay.reportedPublicUrl && relay.reportedPublicUrl !== relayAddress
           ? relay.reportedPublicUrl
           : null;
@@ -354,13 +350,17 @@ class DirectoryApp {
       return;
     }
 
-    const forwardedAddress = relay.forwardedAddress
-      || this.pickForwardedAddress(relay.connectionMeta?.forwardedChain);
-    const forwardedPort = relay.connectionMeta?.forwardedPort || relay.connectionMeta?.clientPort || '';
-    const forwardedProtocol = (relay.connectionMeta?.clientProtocol || relay.connectionMeta?.forwardedProto || 'http').toLowerCase();
-    const forwardedDisplay = relay.forwardedUrl
-      || this.buildForwardedUrl(forwardedAddress, forwardedPort, forwardedProtocol)
-      || (forwardedAddress ? `${forwardedAddress}${forwardedPort ? `:${forwardedPort}` : ''}` : null);
+    // 优先使用Relay自己配置的publicAccessUrl
+    const displayAddress = relay.publicAccessUrl
+      || relay.forwardedUrl
+      || relay.clientDerivedUrl
+      || relay.connectionMeta?.clientDerivedUrl
+      || relay.resolvedPublicUrl
+      || relay.publicUrl
+      || relay.onion
+      || relay.id
+      || '未提供';
+      
     const latencyLabel = typeof relay.latencyMs === 'number'
       ? `${relay.latencyMs}ms`
       : (typeof relay.latency === 'number' ? `${relay.latency}ms` : '未知');
@@ -394,7 +394,8 @@ class DirectoryApp {
         客户端协议: ${(relay.connectionMeta.clientProtocol || relay.connectionMeta.forwardedProto || 'http').toUpperCase()}<br>
         转发链: ${this.formatForwardedChain(relay.connectionMeta.forwardedChain)}<br>
         声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
-        解析URL: <code class="mono">${forwardedDisplay || relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
+        自定义URL: <code class="mono">${relay.publicAccessUrl || '未设置'}</code><br>
+        解析URL: <code class="mono">${displayAddress}</code>
       `
       : '暂未记录连接来源';
 
@@ -421,7 +422,7 @@ class DirectoryApp {
             </div>
             <div class="detail-item full">
               <label>地址</label>
-              <code class="mono">${forwardedDisplay || relay.clientDerivedUrl || relay.connectionMeta?.clientDerivedUrl || relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
+              <code class="mono">${displayAddress}</code>
             </div>
             <div class="detail-item full">
               <label>指纹</label>

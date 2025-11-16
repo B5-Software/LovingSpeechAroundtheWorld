@@ -1,6 +1,6 @@
 {
   "name": "loving-speech-around-the-world",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Tor-friendly distributed love letter block storage with Directory, Relay, and Client modes",
   "author": "B5-Software",
   "type": "module",

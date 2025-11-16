@@ -127,6 +127,7 @@ class RelayApp {
       const badge = document.getElementById('directory-status-badge');
       const fingerprintInput = document.getElementById('relay-fingerprint');
       const nicknameInput = document.querySelector('[name="nickname"]');
+      const publicAccessUrlInput = document.querySelector('[name="publicAccessUrl"]');
       
       if (data.registered) {
         badge.textContent = '已注册';
@@ -137,13 +138,17 @@ class RelayApp {
         badge.className = 'badge offline';
       }
       
-      // 填充目录URL和nickname
+      // 填充目录URL和nickname和publicAccessUrl
       if (data.directoryUrl) {
         document.querySelector('[name="directoryUrl"]').value = data.directoryUrl;
       }
       
       if (data.nickname && nicknameInput) {
         nicknameInput.value = data.nickname;
+      }
+      
+      if (publicAccessUrlInput) {
+        publicAccessUrlInput.value = data.publicAccessUrl || '';
       }
     } catch (error) {
       console.error('加载目录状态失败:', error);
@@ -253,6 +258,7 @@ class RelayApp {
       const config = {
         directoryUrl: formData.get('directoryUrl'),
         nickname: formData.get('nickname') || '',
+        publicAccessUrl: formData.get('publicAccessUrl') || '',
         heartbeatInterval: parseInt(formData.get('heartbeatInterval'))
       };
       

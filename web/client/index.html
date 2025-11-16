@@ -160,37 +160,6 @@
             <span class="panel-icon"><i class="fas fa-th-large"></i></span>
             <div>
               <p class="panel-label">应用启动器</p>
-
-          <div class="modal" id="key-modal" aria-hidden="true">
-            <div class="modal-backdrop" data-modal-close></div>
-            <div class="modal-dialog compact" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
-              <header class="modal-header">
-                <div>
-                  <p class="modal-eyebrow">Key Forge</p>
-                  <h3 class="modal-title" id="key-modal-title">铸造新的密钥对</h3>
-                </div>
-                <button class="modal-close" id="key-modal-close" type="button" aria-label="关闭">
-                  <i class="fas fa-times"></i>
-                </button>
-              </header>
-              <div class="modal-body">
-                <form id="key-create-form" class="modal-form">
-                  <label class="modal-field">
-                    <span>密钥名称</span>
-                    <input type="text" id="key-label-input" name="label" maxlength="64" placeholder="例如：星河守护者" />
-                  </label>
-                  <p class="form-hint" id="key-modal-hint">密钥名称将作为展示标签，可选填。</p>
-                  <div class="modal-actions">
-                    <button type="button" class="btn btn-ghost" data-modal-close>稍后再说</button>
-                    <button type="submit" class="btn btn-primary" id="key-modal-submit">
-                      <span class="btn-icon"><i class="fas fa-bolt"></i></span>
-                      <span>立即铸造</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
               <h2 class="panel-title">在此处，开启爱与加密的奇妙旅程</h2>
             </div>
           </div>
@@ -1142,6 +1111,38 @@
           <span class="dock-icon"><i class="fas fa-rocket"></i></span>
           <span class="dock-label">启动器</span>
         </button>
+      </div>
+    </div>
+
+    <!-- 密钥创建模态框 -->
+    <div class="modal" id="key-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-dialog compact" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+        <header class="modal-header">
+          <div>
+            <p class="modal-eyebrow">Key Forge</p>
+            <h3 class="modal-title" id="key-modal-title">铸造新的密钥对</h3>
+          </div>
+          <button class="modal-close" id="key-modal-close" type="button" aria-label="关闭">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body">
+          <form id="key-create-form" class="modal-form">
+            <label class="modal-field">
+              <span>密钥名称</span>
+              <input type="text" id="key-label-input" name="label" maxlength="64" placeholder="例如:星河守护者" />
+            </label>
+            <p class="form-hint" id="key-modal-hint">密钥名称将作为展示标签，可选填。</p>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" data-modal-close>稍后再说</button>
+              <button type="submit" class="btn btn-primary" id="key-modal-submit">
+                <span class="btn-icon"><i class="fas fa-bolt"></i></span>
+                <span>立即铸造</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 

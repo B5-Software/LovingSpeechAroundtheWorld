@@ -357,6 +357,7 @@ export class RelayState {
       const payload = {
         onion: cfg.onion,
         publicUrl: cfg.publicUrl,
+        publicAccessUrl: cfg.publicAccessUrl || '',
         nickname: cfg.nickname || cfg.onion?.substring(0, 8) || 'Anonymous',
         fingerprint,
         latencyMs: cfg.metrics?.latencyMs,

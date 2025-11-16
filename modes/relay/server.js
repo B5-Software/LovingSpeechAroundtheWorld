@@ -195,6 +195,7 @@ export function createRelayServer() {
       registered: !!config.directoryUrl,
       directoryUrl: config.directoryUrl,
       nickname: config.nickname,
+      publicAccessUrl: config.publicAccessUrl || '',
       fingerprint: state.fingerprint || 'N/A',
       lastReport: state.lastReportInfo || null
     });
@@ -202,7 +203,7 @@ export function createRelayServer() {
 
   app.post('/api/relay/directory/register', requireAuth, async (req, res) => {
     try {
-      // 确保保存所有配置字段包括nickname
+      // 确保保存所有配置字段包括nickname和publicAccessUrl
       const updateData = {
         directoryUrl: req.body.directoryUrl,
         heartbeatInterval: req.body.heartbeatInterval
@@ -210,6 +211,10 @@ export function createRelayServer() {
       
       if (req.body.nickname !== undefined) {
         updateData.nickname = req.body.nickname;
+      }
+      
+      if (req.body.publicAccessUrl !== undefined) {
+        updateData.publicAccessUrl = req.body.publicAccessUrl;
       }
       
       await state.config.update(updateData);
