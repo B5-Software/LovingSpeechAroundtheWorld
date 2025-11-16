@@ -87,10 +87,25 @@ function confirm() {
 
 prompt_mode
 
-PORT_MAP=()
-for svc in ${MODE_SERVICES[$MODE_SELECTED]}; do
-  prompt_port "$svc"
-done
+declare -A PORT_MAP=()
+
+function collect_ports_for_mode() {
+  local services_string=${MODE_SERVICES[$MODE_SELECTED]:-}
+  if [[ -z $services_string ]]; then
+    echo "[deploy] 错误：未找到模式 ${MODE_SELECTED} 对应的服务定义。" >&2
+    exit 1
+  fi
+  read -r -a REQUIRED_SERVICES <<< "$services_string"
+  if [[ ${#REQUIRED_SERVICES[@]} -eq 0 ]]; then
+    echo "[deploy] 错误：模式 ${MODE_SELECTED} 未配置任何服务。" >&2
+    exit 1
+  fi
+  for svc in "${REQUIRED_SERVICES[@]}"; do
+    prompt_port "$svc"
+  done
+}
+
+collect_ports_for_mode
 
 read -rp "为该进程设置名称 (默认 ${DEFAULT_NAME_PREFIX}-${MODE_SELECTED}): " PROC_NAME
 PROC_NAME=${PROC_NAME:-${DEFAULT_NAME_PREFIX}-${MODE_SELECTED}}
@@ -102,13 +117,13 @@ for svc in directory relay client; do
   fi
 done
 
-echo "\n>>> 启动 PM2 进程 ${PROC_NAME}..."
+printf '\n>>> 启动 PM2 进程 %s...\n' "$PROC_NAME"
 env "${ENV_VARS[@]}" pm2 start "$SCRIPT_PATH" \
   --name "$PROC_NAME" \
   --cwd "$ROOT_DIR" \
   --interpreter node
 
-echo "\n当前 PM2 进程："
+printf '\n当前 PM2 进程：\n'
 pm2 ls || true
 
 if confirm "是否保存当前 PM2 进程列表以便重启自动恢复？" Y; then
@@ -120,7 +135,7 @@ if confirm "是否配置 PM2 开机自启？需要 sudo 权限" N; then
   echo "PM2 启动命令已生成，请根据提示执行 sudo 命令完成注册。"
 fi
 
-echo "\n部署完成。可通过以下命令管理进程："
+printf '\n部署完成。可通过以下命令管理进程：\n'
 echo "  pm2 logs ${PROC_NAME}"
 echo "  pm2 restart ${PROC_NAME}"
 echo "  pm2 stop ${PROC_NAME}"
