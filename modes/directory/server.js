@@ -63,15 +63,27 @@ function isLoopbackHost(hostname) {
   return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
-function resolveRelayPublicUrl(reportedUrl, clientHost) {
+function deriveRelayPublicUrl(reportedUrl, clientHost, defaultPort = 4700) {
   const parsed = parseUrlFlexible(reportedUrl);
-  if (!parsed) {
+  if (parsed) {
+    if (clientHost) {
+      parsed.hostname = clientHost;
+    }
+    if (!parsed.port) {
+      if (parsed.protocol === 'https:') {
+        parsed.port = '443';
+      } else if (parsed.protocol === 'http:') {
+        parsed.port = String(defaultPort);
+      }
+    }
+    return parsed.toString().replace(/\/$/, '');
+  }
+  if (!clientHost) {
     return reportedUrl || null;
   }
-  if (isLoopbackHost(parsed.hostname) && clientHost) {
-    parsed.hostname = clientHost;
-  }
-  return parsed.toString().replace(/\/$/, '');
+  const protocol = reportedUrl?.startsWith('https') ? 'https:' : 'http:';
+  const synthetic = new URL(`${protocol}//${clientHost}:${defaultPort}`);
+  return synthetic.toString().replace(/\/$/, '');
 }
 
 function isLikelyGfwError(error) {
@@ -231,7 +243,7 @@ export function createDirectoryServer() {
   app.post('/api/relays', async (req, res) => {
     try {
       const network = captureClientNetwork(req);
-      const resolvedPublicUrl = resolveRelayPublicUrl(req.body?.publicUrl, network.clientHost);
+      const resolvedPublicUrl = deriveRelayPublicUrl(req.body?.publicUrl, network.clientHost);
       const relayPayload = {
         ...req.body,
         publicUrl: resolvedPublicUrl || req.body?.publicUrl || null,
@@ -239,6 +251,7 @@ export function createDirectoryServer() {
         connectionMeta: {
           reportedPublicUrl: req.body?.publicUrl || null,
           resolvedPublicUrl: resolvedPublicUrl || req.body?.publicUrl || null,
+          clientDerivedUrl: resolvedPublicUrl || null,
           clientAddress: network.clientAddress,
           forwardedChain: network.forwardedChain,
           rawRemoteAddress: network.rawRemoteAddress,
@@ -350,6 +363,7 @@ export function createDirectoryServer() {
       onion: relay.onion,
       publicUrl: relay.publicUrl,
       resolvedPublicUrl: relay.connectionMeta?.resolvedPublicUrl || relay.publicUrl || null,
+      clientDerivedUrl: relay.connectionMeta?.clientDerivedUrl || relay.publicUrl || null,
       reportedPublicUrl: relay.connectionMeta?.reportedPublicUrl || relay.publicUrl || null,
       nickname: relay.nickname || relay.onion?.substring(0, 8) || 'N/A',
       fingerprint: relay.fingerprint || relay.onion?.substring(0, 16) || 'N/A',

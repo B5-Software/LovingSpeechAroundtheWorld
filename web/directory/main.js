@@ -164,7 +164,13 @@ class DirectoryApp {
       tbody.innerHTML = relays.map((relay) => {
         const relayKey = this.buildRelayKey(relay);
         this.relayLookup.set(relayKey, relay);
-        const relayAddress = relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id || '未提供';
+        const relayAddress = relay.clientDerivedUrl
+          || relay.connectionMeta?.clientDerivedUrl
+          || relay.resolvedPublicUrl
+          || relay.publicUrl
+          || relay.onion
+          || relay.id
+          || '未提供';
         const reportedAddress = relay.reportedPublicUrl && relay.reportedPublicUrl !== relayAddress
           ? relay.reportedPublicUrl
           : null;
@@ -369,7 +375,7 @@ class DirectoryApp {
         最近上报: ${this.formatTime(relay.connectionMeta.resolvedAt)}<br>
         客户端IP: ${relay.lastSeenIp || relay.connectionMeta.clientAddress || '未知'}<br>
         声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
-        解析URL: <code class="mono">${relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
+        解析URL: <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta.clientDerivedUrl || relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
       `
       : '暂未记录连接来源';
 
@@ -396,7 +402,7 @@ class DirectoryApp {
             </div>
             <div class="detail-item full">
               <label>地址</label>
-              <code class="mono">${relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
+              <code class="mono">${relay.clientDerivedUrl || relay.connectionMeta?.clientDerivedUrl || relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
             </div>
             <div class="detail-item full">
               <label>指纹</label>
