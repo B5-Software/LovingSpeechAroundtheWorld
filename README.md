@@ -79,6 +79,28 @@ pm2 startup  # 可选：注册为系统服务
 
 如需自定义，只需复制一个条目并改写 `APP_MODE` 与 `DIRECTORY_PORT` / `RELAY_PORT` / `CLIENT_PORT` 环境变量，即可让 PM2 以特定模式和端口自启。
 
+> 💡 `pm2.config.cjs` 现在已经覆盖 **Directory / Relay / Client / Relay+Client / Full Stack** 五种模式，可直接使用 `pm2 start pm2.config.cjs --only lovingspeech-client` 等命令启动对应服务。
+
+### 一键部署脚本（Linux / WSL / macOS）
+
+针对生产部署提供了 `scripts/deploy.sh`：一个 bash 向导会引导你选择模式、端口、PM2 进程名以及是否执行 `pm2 save`、`pm2 startup`。
+
+```bash
+chmod +x scripts/deploy.sh
+bash scripts/deploy.sh
+```
+
+脚本执行流程：
+
+1. 检查是否已经安装 `pm2`；
+2. 选择运行模式（Directory / Relay / Client / Relay+Client / Full Stack）；
+3. 针对涉及的服务逐一输入端口（提供默认值，可直接回车）；
+4. 自动执行 `pm2 start scripts/start.js --name <your-name>` 并注入 `APP_MODE`、`DIRECTORY_PORT`、`RELAY_PORT`、`CLIENT_PORT` 等环境变量；
+5. 可选执行 `pm2 save` 与 `pm2 startup`，帮助实现开机自启。
+
+
+脚本完成后会给出常用的 `pm2 logs/restart/stop/delete` 提示，方便后续维护。
+
 ## Tor 配置
 
 每个模式在 WebUI 的 “Tor 连接” 面板或 CLI (`<mode> tor:*`) 中可：
