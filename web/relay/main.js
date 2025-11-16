@@ -349,12 +349,6 @@ class RelayApp {
         this.addLog('error', `注册失败: ${result.message}`);
       }
     } catch (error) {
-        this.addLog('success', '✅ 成功注册到目录服务器');
-        await this.loadDirectoryStatus();
-      } else {
-        this.addLog('error', `注册失败: ${result.message}`);
-      }
-    } catch (error) {
       this.addLog('error', `注册失败: ${error.message}`);
     }
   }
