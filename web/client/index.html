@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>让爱遍布于世界角落 · 星河情书</title>
+    <link rel="stylesheet" href="../shared/fontawesome/all.min.css" />
+    <link rel="stylesheet" href="../shared/base.css" />
+    <link rel="stylesheet" href="./styles/theme.css" />
+    <link rel="stylesheet" href="./styles/animations.css" />
+    <link rel="stylesheet" href="./styles/main.css" />
+  </head>
+  <body class="panel-home">
+    <div id="auth-overlay" class="auth-overlay" aria-hidden="true">
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <h2><i class="fas fa-shield-alt"></i> <span id="auth-title">登录星河客户端</span></h2>
+          <p id="auth-description">请使用 CLI 创建的账户登录以解锁所有功能。</p>
+        </div>
+        <form id="login-form">
+          <label class="auth-field">
+            <span>用户名</span>
+            <input type="text" name="username" autocomplete="username" required />
+          </label>
+          <label class="auth-field">
+            <span>密码</span>
+            <input type="password" name="password" autocomplete="current-password" required minlength="8" />
+          </label>
+          <button type="submit" class="btn btn-primary" id="login-submit-btn">
+            <span class="btn-icon"><i class="fas fa-unlock"></i></span>
+            <span id="auth-submit-text">解锁客户端</span>
+          </button>
+          <p class="auth-hint" id="auth-hint">
+            还没有账户? <a href="#" id="toggle-register-link">立即注册</a>
+          </p>
+          <p class="auth-error" id="login-error" role="alert"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="session-bar" id="session-bar" aria-live="polite" hidden>
+      <button class="session-toggle" id="session-toggle" aria-label="折叠会话栏">
+        <i class="fas fa-chevron-up"></i>
+      </button>
+      <div class="session-content">
+        <div class="session-info">
+          <span class="role-chip" id="session-role-badge">访客</span>
+          <strong class="session-user" id="session-username">未登录</strong>
+          <small class="session-expiry" id="session-expiry">—</small>
+        </div>
+        <div class="session-actions">
+          <button class="btn-session" data-navigate="panel-security">
+            <i class="fas fa-shield-alt"></i>
+            <span>安全面板</span>
+          </button>
+          <button class="btn-session" data-navigate="panel-users" data-role-required="owner" data-hide-if-locked="true">
+            <i class="fas fa-users-cog"></i>
+            <span>用户组</span>
+          </button>
+          <button class="btn-session danger" id="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>退出</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 背景特效层 -->
+    <div id="particle-canvas" class="bg-layer"></div>
+    <div id="shooting-stars" class="bg-layer"></div>
+    <div class="aurora-gradient"></div>
+
+    <!-- 主容器 -->
+    <div class="app-container">
+      <!-- 主页 Hero -->
+      <section class="panel hero-panel active" id="home-panel">
+        <div class="hero-header">
+          <div class="logo-badge shimmer"><i class="fas fa-heart"></i> 让爱遍布于世界角落</div>
+          <h1 class="hero-title fade-in-up">以密钥为笔，将思念镌刻于不可篡改的时空</h1>
+          <p class="hero-subtitle fade-in-up delay-1" id="poetry-carousel">
+            让每一封情书都成为星辰，穿越防火墙的重重封锁，抵达心之彼岸
+          </p>
+        </div>
+
+        <!-- 实时统计 -->
+        <div class="metrics-row fade-in-up delay-2">
+          <div class="metric-card hover-float">
+            <div class="metric-icon"><i class="fas fa-key"></i></div>
+            <div class="metric-content">
+              <span class="metric-label">密钥指纹</span>
+              <strong class="metric-value" id="stat-keys">0</strong>
+              <small class="metric-desc">以RSA之力守护爱的誓言</small>
+            </div>
+          </div>
+          <div class="metric-card hover-float">
+            <div class="metric-icon"><i class="fas fa-envelope-open-text"></i></div>
+            <div class="metric-content">
+              <span class="metric-label">情书星图</span>
+              <strong class="metric-value" id="stat-letters">0</strong>
+              <small class="metric-desc">穿越暗夜的光之信使</small>
+            </div>
+          </div>
+          <div class="metric-card hover-float">
+            <div class="metric-icon"><i class="fas fa-globe"></i></div>
+            <div class="metric-content">
+              <span class="metric-label">洋葱隧道</span>
+              <strong class="metric-value" id="tor-status-badge">未点燃</strong>
+              <small class="metric-desc" id="tor-progress-text">等待穿越防火墙</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="quick-actions fade-in-up delay-3">
+          <button class="btn btn-primary pulse-glow" id="quick-sync">
+            <span class="btn-icon"><i class="fas fa-sync-alt"></i></span>
+            <span>同步星河链</span>
+          </button>
+          <button class="btn btn-secondary" data-navigate="panel-network" data-role-required="admin" data-hide-if-locked="true">
+            <span class="btn-icon"><i class="fas fa-network-wired"></i></span>
+            <span>中继配置</span>
+          </button>
+          <button class="btn btn-ghost" data-navigate="panel-tor" data-role-required="admin" data-hide-if-locked="true">
+            <span class="btn-icon"><i class="fas fa-user-secret"></i></span>
+            <span>洋葱隧道</span>
+          </button>
+        </div>
+
+        <!-- 活动时间轴 -->
+        <div class="activity-timeline fade-in-up delay-4">
+          <h3 class="timeline-header">
+            <span><i class="fas fa-stream"></i> 时间轴 · 镌刻每个心动瞬间</span>
+          </h3>
+          <ul class="timeline-list" id="activity-feed">
+            <li class="timeline-item">
+              <strong>等待你的第一个故事</strong>
+              <span class="timeline-time">—</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 启动器入口 -->
+        <div class="launcher-entry fade-in-up delay-5">
+          <button class="btn btn-large btn-primary pulse-glow" data-navigate="panel-launcher">
+            <span class="btn-icon"><i class="fas fa-rocket"></i></span>
+            <span>启动器 · 探索爱的每个角落</span>
+            <span class="btn-shortcut">Ctrl+L</span>
+          </button>
+          <p class="launcher-meta" id="launcher-meta">
+            <span id="launcher-meta-author">B5-Software</span>
+            <span class="meta-divider">·</span>
+            <span id="launcher-meta-version">v0.0.0</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- 启动器面板 -->
+      <section class="panel work-panel launcher-panel" id="panel-launcher">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-th-large"></i></span>
+            <div>
+              <p class="panel-label">应用启动器</p>
+
+          <div class="modal" id="key-modal" aria-hidden="true">
+            <div class="modal-backdrop" data-modal-close></div>
+            <div class="modal-dialog compact" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+              <header class="modal-header">
+                <div>
+                  <p class="modal-eyebrow">Key Forge</p>
+                  <h3 class="modal-title" id="key-modal-title">铸造新的密钥对</h3>
+                </div>
+                <button class="modal-close" id="key-modal-close" type="button" aria-label="关闭">
+                  <i class="fas fa-times"></i>
+                </button>
+              </header>
+              <div class="modal-body">
+                <form id="key-create-form" class="modal-form">
+                  <label class="modal-field">
+                    <span>密钥名称</span>
+                    <input type="text" id="key-label-input" name="label" maxlength="64" placeholder="例如：星河守护者" />
+                  </label>
+                  <p class="form-hint" id="key-modal-hint">密钥名称将作为展示标签，可选填。</p>
+                  <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" data-modal-close>稍后再说</button>
+                    <button type="submit" class="btn btn-primary" id="key-modal-submit">
+                      <span class="btn-icon"><i class="fas fa-bolt"></i></span>
+                      <span>立即铸造</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+              <h2 class="panel-title">在此处，开启爱与加密的奇妙旅程</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <div class="launcher-grid">
+            <article class="launcher-card hover-float" data-navigate="panel-spark">
+              <div class="launcher-icon spark-icon"><i class="fas fa-fire"></i></div>
+              <h3 class="launcher-title">火花 Spark</h3>
+              <p class="launcher-desc">用持续的贡献守护属于你们的数字之火</p>
+              <span class="launcher-badge badge-new">NEW</span>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-keys">
+              <div class="launcher-icon"><i class="fas fa-key"></i></div>
+              <h3 class="launcher-title">密钥工坊</h3>
+              <p class="launcher-desc">铸造独一无二的密码学身份</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-compose">
+              <div class="launcher-icon"><i class="fas fa-feather-alt"></i></div>
+              <h3 class="launcher-title">情书炼金术</h3>
+              <p class="launcher-desc">将思念转化为永恒的区块</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-library">
+              <div class="launcher-icon"><i class="fas fa-book-open"></i></div>
+              <h3 class="launcher-title">星辰图书馆</h3>
+              <p class="launcher-desc">收藏穿越时空的爱之回声</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-network" data-role-required="admin" data-hide-if-locked="true">
+              <div class="launcher-icon"><i class="fas fa-project-diagram"></i></div>
+              <h3 class="launcher-title">中继星图</h3>
+              <p class="launcher-desc">规划情书的最佳航线</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-tor" data-role-required="admin" data-hide-if-locked="true">
+              <div class="launcher-icon"><i class="fas fa-user-shield"></i></div>
+              <h3 class="launcher-title">洋葱隧道</h3>
+              <p class="launcher-desc">在暗网中开辟安全通道</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-settings">
+              <div class="launcher-icon"><i class="fas fa-palette"></i></div>
+              <h3 class="launcher-title">个性化设置</h3>
+              <p class="launcher-desc">调整视觉主题与动画效果</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-security">
+              <div class="launcher-icon"><i class="fas fa-shield-alt"></i></div>
+              <h3 class="launcher-title">安全中心</h3>
+              <p class="launcher-desc">管理登录、会话与密钥保护</p>
+            </article>
+
+            <article class="launcher-card hover-float" data-navigate="panel-users" data-role-required="owner" data-hide-if-locked="true">
+              <div class="launcher-icon"><i class="fas fa-user-lock"></i></div>
+              <h3 class="launcher-title">用户组控制台</h3>
+              <p class="launcher-desc">管理账号、分配角色与密钥权限</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 设置面板 -->
+      <section class="panel work-panel settings-panel" id="panel-settings">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-sliders-h"></i></span>
+            <div>
+              <p class="panel-label">个性化设置</p>
+              <h2 class="panel-title">雕刻专属于你的视觉诗篇</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <!-- 主题选择 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-palette"></i> 主题风格</h3>
+            <p class="section-desc">六种主题，六种心境 · 选择最契合此刻情感的色彩</p>
+            
+            <div class="theme-selector-grid">
+              <div class="theme-card" data-theme="aurora">
+                <div class="theme-preview theme-aurora"></div>
+                <h4 class="theme-name">极光之恋</h4>
+                <p class="theme-desc">梦幻渐变·浪漫紫粉</p>
+              </div>
+
+              <div class="theme-card active" data-theme="cyberpunk">
+                <div class="theme-preview theme-cyberpunk"></div>
+                <h4 class="theme-name">赛博之夜</h4>
+                <p class="theme-desc">霓虹闪烁·未来科技</p>
+              </div>
+
+              <div class="theme-card" data-theme="forest">
+                <div class="theme-preview theme-forest"></div>
+                <h4 class="theme-name">森林秘境</h4>
+                <p class="theme-desc">自然清新·翠绿宁静</p>
+              </div>
+
+              <div class="theme-card" data-theme="ocean">
+                <div class="theme-preview theme-ocean"></div>
+                <h4 class="theme-name">深海之梦</h4>
+                <p class="theme-desc">湛蓝深邃·海洋秘境</p>
+              </div>
+
+              <div class="theme-card" data-theme="sunset">
+                <div class="theme-preview theme-sunset"></div>
+                <h4 class="theme-name">日落余晖</h4>
+                <p class="theme-desc">暖橙金黄·温暖治愈</p>
+              </div>
+
+              <div class="theme-card" data-theme="monochrome">
+                <div class="theme-preview theme-monochrome"></div>
+                <h4 class="theme-name">极简黑白</h4>
+                <p class="theme-desc">简约纯粹·优雅大方</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 深浅色模式 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-adjust"></i> 颜色模式</h3>
+            <p class="section-desc">以光为笔，绘制最适合当前环境的色彩</p>
+            
+            <div class="mode-selector">
+              <button class="mode-btn active" data-mode="dark">
+                <span class="mode-icon"><i class="fas fa-moon"></i></span>
+                <span class="mode-label">深色模式</span>
+                <span class="mode-desc">夜晚的温柔保护</span>
+              </button>
+              
+              <button class="mode-btn" data-mode="light">
+                <span class="mode-icon"><i class="fas fa-sun"></i></span>
+                <span class="mode-label">浅色模式</span>
+                <span class="mode-desc">白天的清爽明亮</span>
+              </button>
+
+              <button class="mode-btn" data-mode="auto">
+                <span class="mode-icon"><i class="fas fa-magic"></i></span>
+                <span class="mode-label">智能切换</span>
+                <span class="mode-desc">随时间流转而变幻</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 视觉效果 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-wand-magic-sparkles"></i> 视觉效果</h3>
+            <p class="section-desc">调整动画与特效，让界面随你心动而舞</p>
+            
+            <div class="settings-list">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">背景粒子动画</span>
+                  <span class="setting-desc">显示流动的星空粒子</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-particles" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">流星效果</span>
+                  <span class="setting-desc">偶尔划过的流星</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-shooting-stars" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">极光背景</span>
+                  <span class="setting-desc">梦幻的渐变光晕</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-aurora" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">玻璃态模糊</span>
+                  <span class="setting-desc">卡片背景模糊效果</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-glass" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">动画速度</span>
+                  <span class="setting-desc">调整整体动画速度</span>
+                </div>
+                <select class="setting-select" id="animation-speed">
+                  <option value="0.5">快速</option>
+                  <option value="1" selected>标准</option>
+                  <option value="1.5">缓慢</option>
+                  <option value="0">关闭动画</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 重置选项 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-undo-alt"></i> 重置与恢复</h3>
+            <div class="button-group">
+              <button class="btn btn-ghost" id="reset-settings-btn">
+                <span class="btn-icon"><i class="fas fa-history"></i></span>
+                <span>恢复默认设置</span>
+              </button>
+              <button class="btn btn-secondary" id="export-settings-btn">
+                <span class="btn-icon"><i class="fas fa-file-export"></i></span>
+                <span>导出配置</span>
+              </button>
+              <button class="btn btn-secondary" id="import-settings-btn">
+                <span class="btn-icon"><i class="fas fa-file-import"></i></span>
+                <span>导入配置</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 火花 Spark 面板 -->
+      <section class="panel work-panel spark-panel" id="panel-spark">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon spark-flame"><i class="fas fa-fire"></i></span>
+            <div>
+              <p class="panel-label">火花 Spark</p>
+              <h2 class="panel-title">用持续贡献守护情侣的数字之火</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <!-- 火花状态显示 -->
+          <div class="spark-status-card">
+            <div class="spark-visual">
+              <div class="spark-flame-container" id="spark-flame-viz">
+                <div class="flame-layer flame-core"></div>
+                <div class="flame-layer flame-mid"></div>
+                <div class="flame-layer flame-outer"></div>
+              </div>
+              <div class="spark-days" id="spark-days-display">
+                <span class="days-number">0</span>
+                <span class="days-label">天</span>
+              </div>
+            </div>
+
+            <div class="spark-info">
+              <h3 class="spark-status-title">
+                <span id="spark-status-text">未点燃</span>
+                <span class="spark-level-badge" id="spark-level-badge">Lv.0</span>
+              </h3>
+              <p class="spark-status-desc" id="spark-status-desc">
+                与TA配对后开始燃烧属于你们的火花
+              </p>
+              
+              <div class="spark-progress-bar">
+                <div class="spark-progress-fill" id="spark-progress-fill" style="width: 0%"></div>
+                <span class="spark-progress-text" id="spark-progress-text">0 / 24h</span>
+              </div>
+
+              <div class="spark-meta">
+                <div class="spark-meta-item">
+                  <span class="meta-label">配对密钥:</span>
+                  <span class="meta-value" id="spark-partner-key">未配对</span>
+                </div>
+                <div class="spark-meta-item">
+                  <span class="meta-label">配对串:</span>
+                  <span class="meta-value mono" id="spark-pair-string">—</span>
+                </div>
+                <div class="spark-meta-item">
+                  <span class="meta-label">剩余时间:</span>
+                  <span class="meta-value" id="spark-remaining-time">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 火花配对 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-fire-alt"></i> 点燃火花</h3>
+            <p class="section-desc">
+              你和TA需要使用同一配对串生成的密钥对来点燃火花。两个人的密钥互为公私钥对，共享唯一的配对串作为身份证明。
+            </p>
+
+            <form id="spark-pair-form" class="form-stack">
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-key"></i> 选择你的密钥</label>
+                <select name="keyId" class="form-input" required>
+                  <option value="">—— 请选择密钥 ——</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-link"></i> 配对串（Pairing String）</label>
+                <input name="pairString" class="form-input mono" placeholder="例如：love-forever-2024" required />
+                <small class="form-hint">
+                  这是你和TA约定的唯一字符串，用于验证身份。请妥善保管，不要泄露。
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-heart"></i> TA的公钥指纹</label>
+                <input name="partnerKeyId" class="form-input mono" placeholder="对方的密钥ID" />
+                <small class="form-hint">可选，用于验证配对关系</small>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-large">
+                <span class="btn-icon"><i class="fas fa-bolt"></i></span>
+                <span>点燃火花</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- 续火花操作 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-fire"></i> 续火花 · 持续贡献</h3>
+            <p class="section-desc">
+              每次对区块链的有效贡献都会为火花续命。发送情书、创建区块、同步数据，都能让火花燃烧得更久。
+            </p>
+
+            <div class="spark-actions-grid">
+              <div class="spark-action-card">
+                <div class="action-icon"><i class="fas fa-envelope-open-text"></i></div>
+                <h4 class="action-title">发送情书</h4>
+                <p class="action-desc">+24小时</p>
+                <button class="btn btn-secondary" data-navigate="panel-compose">
+                  <span>去撰写</span>
+                </button>
+              </div>
+
+              <div class="spark-action-card">
+                <div class="action-icon"><i class="fas fa-sync-alt"></i></div>
+                <h4 class="action-title">同步区块</h4>
+                <p class="action-desc">+6小时</p>
+                <button class="btn btn-secondary" id="spark-sync-btn">
+                  <span>立即同步</span>
+                </button>
+              </div>
+
+              <div class="spark-action-card">
+                <div class="action-icon"><i class="fas fa-key"></i></div>
+                <h4 class="action-title">创建密钥</h4>
+                <p class="action-desc">+12小时</p>
+                <button class="btn btn-secondary" data-navigate="panel-keys">
+                  <span>去创建</span>
+                </button>
+              </div>
+
+              <div class="spark-action-card disabled">
+                <div class="action-icon"><i class="fas fa-gem"></i></div>
+                <h4 class="action-title">续燃 Premium</h4>
+                <p class="action-desc">+7天</p>
+                <button class="btn btn-ghost" disabled>
+                  <span>即将推出</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 火花历史 -->
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-chart-line"></i> 贡献历史</h3>
+            <div class="scroll-box" id="spark-history-list">
+              <p class="empty-hint">暂无贡献记录</p>
+            </div>
+          </div>
+
+          <div class="info-box shimmer-border">
+            <h4><i class="fas fa-star"></i> 火花机制说明</h4>
+            <ul class="info-list">
+              <li>火花是情侣之间的专属标识，通过配对串和密钥对绑定</li>
+              <li>每次有效贡献都会增加火花的持续时间</li>
+              <li>火花熄灭后可重新点燃，但连续天数会重置</li>
+              <li>火花等级根据连续燃烧天数提升: Lv.1(7天)、Lv.2(30天)、Lv.3(100天)、Lv.Max(365天)</li>
+              <li>高等级火花解锁特殊动画效果和专属勋章</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 密钥工坊面板 -->
+      <section class="panel work-panel" id="panel-keys">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-key"></i></span>
+            <div>
+              <p class="panel-label">密钥工坊</p>
+              <h2 class="panel-title">铸造守护心灵的数字指纹</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content split-layout">
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-magic"></i> 创造与召唤</h3>
+            <p class="section-desc">每一对密钥都是独一无二的魔法，用 RSA 算法编织出无法伪造的身份证明</p>
+            
+            <button class="btn btn-primary" id="create-key-btn">
+              <span class="btn-icon"><i class="fas fa-bolt"></i></span>
+              <span>铸造新密钥对</span>
+            </button>
+
+            <form id="import-key-form" class="form-stack">
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-file-code"></i> 公钥 PEM（所有人可见的光芒）</label>
+                <textarea name="publicKey" class="form-input" rows="3" placeholder="-----BEGIN PUBLIC KEY-----" required></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-lock"></i> 私钥 PEM（只有你知道的秘密）</label>
+                <textarea name="privateKey" class="form-input" rows="3" placeholder="-----BEGIN PRIVATE KEY-----" required></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label"><i class="fas fa-gem"></i> 为它取一个诗意的名字</label>
+                <input name="label" class="form-input" placeholder="例如：月光下的誓言" />
+              </div>
+              <button type="submit" class="btn btn-secondary">
+                <span class="btn-icon"><i class="fas fa-file-import"></i></span>
+                <span>召唤密钥</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-treasure-chest"></i> 密钥宝库</h3>
+            <div class="scroll-box" id="key-list-container">
+              <p class="empty-hint">暂无密钥，请先创建或导入</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 情书炼金术面板 -->
+      <section class="panel work-panel" id="panel-compose">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-feather-alt"></i></span>
+            <div>
+              <p class="panel-label">情书炼金术</p>
+              <h2 class="panel-title">将心声凝结成永恒的光之区块</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <form id="compose-letter-form" class="form-stack">
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-key"></i> 选择你的签名指纹</label>
+              <select name="keyId" class="form-input" required>
+                <option value="">—— 请选择密钥 ——</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-pen-fancy"></i> 为情书命名 <small style="color: var(--text-muted);">(标题不加密,将公开显示)</small></label>
+              <input name="title" class="form-input" placeholder="例如:致未来的你" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-envelope-open-text"></i> 写下你想说的话 
+                <small class="form-hint-inline">(支持 Markdown 格式)</small>
+              </label>
+              <div class="markdown-toolbar" id="markdown-toolbar">
+                <div class="toolbar-actions">
+                  <button type="button" class="toolbar-btn" data-format="bold" title="粗体">
+                    <i class="fas fa-bold"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="italic" title="斜体">
+                    <i class="fas fa-italic"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="heading" title="标题">
+                    <i class="fas fa-heading"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="list" title="无序列表">
+                    <i class="fas fa-list-ul"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="quote" title="引用">
+                    <i class="fas fa-quote-left"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="code" title="代码块">
+                    <i class="fas fa-code"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" data-format="link" title="链接">
+                    <i class="fas fa-link"></i>
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="editor-mode-group">
+                  <button type="button" class="editor-mode-btn active" data-editor-mode="edit">
+                    <i class="fas fa-pen"></i> 编辑
+                  </button>
+                  <button type="button" class="editor-mode-btn" data-editor-mode="preview">
+                    <i class="fas fa-eye"></i> 预览
+                  </button>
+                  <button type="button" class="editor-mode-btn" id="toggle-markdown-help">
+                    <i class="fas fa-question-circle"></i> 帮助
+                  </button>
+                </div>
+              </div>
+              <textarea name="text" id="letter-content" class="form-input" rows="10" placeholder="在这里倾诉你的秘密、梦想或爱意…&#10;支持Markdown格式: **粗体** *斜体* # 标题" required></textarea>
+              <div id="markdown-preview" class="markdown-preview is-hidden"></div>
+              <div id="markdown-help-panel" class="markdown-help-panel is-hidden">
+                <div class="help-row">
+                  <code># 大标题</code>
+                  <span>添加 1-3 个 # 生成不同层级的标题</span>
+                </div>
+                <div class="help-row">
+                  <code>**加粗** · *斜体*</code>
+                  <span>用星号强调重点情绪</span>
+                </div>
+                <div class="help-row">
+                  <code>&gt; 引用</code>
+                  <span>在段落前加 &gt; 表示引用/歌词</span>
+                </div>
+                <div class="help-row">
+                  <code>- 列表项</code>
+                  <span>使用 - 或 * 创建回忆清单</span>
+                </div>
+                <div class="help-row">
+                  <code>`行内代码` / ``` 多行 ```</code>
+                  <span>保留你们的暗号或指令</span>
+                </div>
+                <div class="help-row">
+                  <code>[链接](https://)</code>
+                  <span>附上乐章、影片或地图</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-network-wired"></i> 指定中继节点（可选）</label>
+              <input name="relayUrl" class="form-input" placeholder="留空则自动选择最佳洋流" />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">
+              <span class="btn-icon"><i class="fas fa-rocket"></i></span>
+              <span>加密并发送至星河</span>
+            </button>
+          </form>
+
+          <div class="info-box shimmer-border">
+            <h4><i class="fas fa-satellite-dish"></i> 智能路由</h4>
+            <p>不指定节点时，系统会咨询目录服务器，为你选择延迟最低、可达性最高的中继。你也可以在"中继星图"中配置首选节点。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 星辰图书馆面板 -->
+      <section class="panel work-panel" id="panel-library">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-book-open"></i></span>
+            <div>
+              <p class="panel-label">星辰图书馆</p>
+              <h2 class="panel-title">收藏那些跨越时空的回声</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content split-layout">
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-sync-alt"></i> 链式同步</h3>
+            <p class="section-desc">从目录与中继拉取最新区块链快照，解锁更多被加密的情书</p>
+            
+            <button class="btn btn-primary" id="library-sync-btn">
+              <span class="btn-icon"><i class="fas fa-cloud-download-alt"></i></span>
+              <span>同步星河链</span>
+            </button>
+
+            <div class="status-badge-group">
+              <span class="badge badge-pulse" id="sync-status-badge">静待同步</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-search"></i> 用密钥解锁情书</label>
+              <select id="letter-key-select" class="form-input">
+                <option value="">—— 请选择密钥 ——</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-envelope-open-text"></i> 解密归档</h3>
+            <div class="scroll-box" id="letters-container">
+              <p class="empty-hint">选择密钥后，这里将显示所有你能解开的情书</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 中继星图面板 -->
+      <section class="panel work-panel" id="panel-network" data-role-required="admin" data-hide-if-locked="true">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-project-diagram"></i></span>
+            <div>
+              <p class="panel-label">中继星图</p>
+              <h2 class="panel-title">选择最优的洋流航道</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <form id="network-config-form" class="form-grid">
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-satellite-dish"></i> 目录服务器（权威索引）</label>
+              <input name="directoryUrl" class="form-input" placeholder="http://directory.onion 或 https://..." />
+              <small class="form-hint">目录维护所有中继的信誉与状态</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-bolt"></i> 首选中继节点（可选）</label>
+              <input name="preferredRelay" class="form-input" placeholder="http://relay.onion 或留空自动选择" />
+              <small class="form-hint">留空则自动选择延迟最低的节点</small>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <span class="btn-icon"><i class="fas fa-save"></i></span>
+                <span>保存航线</span>
+              </button>
+              <span class="badge" id="network-config-status">待保存</span>
+            </div>
+          </form>
+
+          <div class="info-box shimmer-border">
+            <h4><i class="fas fa-compass"></i> 路由策略</h4>
+            <p>系统会综合评估中继的延迟、可达性与 GFW 封锁状态，优先选择最可靠的航道。你也可以手动指定信任的洋葱地址。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 暗网穿梭机面板 -->
+      <section class="panel work-panel" id="panel-tor" data-role-required="admin" data-hide-if-locked="true">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+            <div>
+              <p class="panel-label">暗网穿梭机</p>
+              <h2 class="panel-title">用洋葱路由穿透审查之墙</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <div class="status-badge-group">
+            <span class="badge badge-pulse" id="tor-status-main">隧道待命</span>
+          </div>
+
+          <form id="tor-config-form" class="form-grid">
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-tools"></i> Tor 可执行文件路径</label>
+              <input name="torPath" class="form-input" placeholder="留空则使用系统 PATH 中的 tor" />
+              <small class="form-hint">Windows: C:\path\to\tor.exe</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-plug"></i> SOCKS 代理端口</label>
+              <input name="socksPort" class="form-input" type="number" placeholder="9150" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><i class="fas fa-sliders-h"></i> 控制端口</label>
+              <input name="controlPort" class="form-input" type="number" placeholder="9151" />
+            </div>
+
+            <div class="form-group form-full">
+              <label class="form-label"><i class="fas fa-bridge"></i> 网桥配置(可选,突破封锁)</label>
+              <textarea name="bridges" class="form-input" rows="3" placeholder="obfs4 IP:PORT fingerprint&#10;每行一个网桥地址"></textarea>
+              <small class="form-hint">从 <a href="https://bridges.torproject.org/" target="_blank" rel="noopener noreferrer">Tor Project</a> 获取网桥</small>
+            </div>
+
+            <div class="form-actions form-full">
+              <button type="submit" class="btn btn-secondary">
+                <span class="btn-icon"><i class="fas fa-save"></i></span>
+                <span>保存隧道配置</span>
+              </button>
+              <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="tor-start-btn">
+                  <span class="btn-icon"><i class="fas fa-play-circle"></i></span>
+                  <span>点燃洋葱</span>
+                </button>
+                <button type="button" class="btn btn-ghost" id="tor-stop-btn">
+                  <span class="btn-icon"><i class="fas fa-stop-circle"></i></span>
+                  <span>熄灭</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-scroll"></i> 隧道日志</h3>
+            <pre class="log-box" id="tor-logs">等待 Tor 启动…</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 安全中心面板 -->
+      <section class="panel work-panel security-panel" id="panel-security">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-shield-alt"></i></span>
+            <div>
+              <p class="panel-label">安全中心</p>
+              <h2 class="panel-title">守护你的账户与密钥</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-user-lock"></i> 当前会话</h3>
+            <div class="security-session-card" id="security-session-card">
+              <div>
+                <p class="security-session-user">
+                  <span id="security-username">—</span>
+                  <span class="role-chip" id="security-role-badge">—</span>
+                </p>
+                <p class="security-session-meta">自动锁定倒计时 <strong id="security-expiry-countdown">—</strong></p>
+              </div>
+              <button class="btn btn-ghost" id="force-lock-btn">
+                <span class="btn-icon"><i class="fas fa-lock"></i></span>
+                <span>立即锁定</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-key"></i> 修改密码</h3>
+            <form id="password-change-form" class="security-form">
+              <label>
+                <span>当前密码</span>
+                <input type="password" name="oldPassword" autocomplete="current-password" required />
+              </label>
+              <label>
+                <span>新密码</span>
+                <input type="password" name="newPassword" autocomplete="new-password" minlength="8" required />
+              </label>
+              <label>
+                <span>确认新密码</span>
+                <input type="password" name="confirmPassword" autocomplete="new-password" minlength="8" required />
+              </label>
+              <button type="submit" class="btn btn-primary">
+                <span class="btn-icon"><i class="fas fa-save"></i></span>
+                <span>更新密码</span>
+              </button>
+              <p class="form-hint" id="password-change-message"></p>
+            </form>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-stopwatch"></i> 安全策略</h3>
+            <form id="security-preferences-form" class="security-preferences-grid">
+              <div class="preference-card">
+                <p class="preference-kicker">自动锁定</p>
+                <h4 class="preference-title">自定义会话时长</h4>
+                <p class="preference-desc">超过设定时长未操作将自动锁屏，保护你的星链</p>
+                <div class="select-shell">
+                  <select name="autoLockMinutes" id="auto-lock-select">
+                    <option value="5">5 分钟</option>
+                    <option value="15" selected>15 分钟</option>
+                    <option value="30">30 分钟</option>
+                    <option value="60">1 小时</option>
+                  </select>
+                </div>
+              </div>
+              <div class="preference-card">
+                <p class="preference-kicker">提醒策略</p>
+                <h4 class="preference-title">到期前提示</h4>
+                <p class="preference-desc">开启后将在会话到期前 2 分钟提醒，避免内容丢失</p>
+                <label class="toggle-switch tile" for="session-toast-toggle">
+                  <div>
+                    <span class="toggle-label">启用到期提醒</span>
+                    <span class="toggle-hint">保持会话活跃，不被动掉线</span>
+                  </div>
+                  <input type="checkbox" id="session-toast-toggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </form>
+            <p class="form-hint" id="security-preferences-message">会话策略仅存储在本机浏览器中。</p>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-download"></i> 密钥备份</h3>
+            <p class="section-desc">仅在可信设备上导出密钥对，导出的 JSON 文件将包含当前用户所选密钥的公私钥。</p>
+            <div class="security-download">
+              <button class="btn btn-secondary" id="download-active-key-btn" disabled>
+                <span class="btn-icon"><i class="fas fa-file-export"></i></span>
+                <span>导出所选密钥</span>
+              </button>
+              <small id="download-key-hint">请选择密钥或在密钥工坊中点击“导出”按钮。</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 用户组面板 -->
+      <section class="panel work-panel" id="panel-users" data-role-required="owner" data-hide-if-locked="true">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon"><i class="fas fa-users-cog"></i></span>
+            <div>
+              <p class="panel-label">用户与角色</p>
+              <h2 class="panel-title">创建账号并分配权限</h2>
+            </div>
+          </div>
+          <button class="btn-back" data-navigate="home-panel">
+            <span>← 返回星河</span>
+          </button>
+        </header>
+
+        <div class="panel-content">
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-user-plus"></i> 创建用户</h3>
+            <form id="create-user-form" class="security-form">
+              <label>
+                <span>用户名</span>
+                <input type="text" name="username" required minlength="3" autocomplete="off" />
+              </label>
+              <label>
+                <span>临时密码</span>
+                <input type="text" name="password" required minlength="8" autocomplete="new-password" />
+              </label>
+              <label>
+                <span>角色</span>
+                <select name="role" required>
+                  <option value="user">普通用户</option>
+                  <option value="admin">管理员</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary">
+                <span class="btn-icon"><i class="fas fa-user-shield"></i></span>
+                <span>创建账户</span>
+              </button>
+              <p class="form-hint" id="create-user-message"></p>
+            </form>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title"><i class="fas fa-users"></i> 成员列表</h3>
+            <div class="table-responsive">
+              <table class="user-table" id="user-table">
+                <thead>
+                  <tr>
+                    <th>用户名</th>
+                    <th>角色</th>
+                    <th>创建时间</th>
+                    <th>最近更新</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="user-table-body">
+                  <tr>
+                    <td colspan="5" class="empty-hint">加载中…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="form-hint">Owner 账户不可删除或降级。密码重置请通过 CLI。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Dock栏快速操作 -->
+    <div class="dock-container">
+      <div class="dock-bar">
+        <button class="dock-item" data-navigate="home-panel" title="首页">
+          <span class="dock-icon"><i class="fas fa-home"></i></span>
+          <span class="dock-label">首页</span>
+        </button>
+        
+        <button class="dock-item" data-navigate="panel-spark" title="火花">
+          <span class="dock-icon spark-flame"><i class="fas fa-fire"></i></span>
+          <span class="dock-label">火花</span>
+          <span class="dock-badge" id="dock-spark-badge">0天</span>
+        </button>
+
+        <button class="dock-item" data-navigate="panel-compose" title="撰写情书">
+          <span class="dock-icon"><i class="fas fa-feather-alt"></i></span>
+          <span class="dock-label">撰写</span>
+        </button>
+
+        <button class="dock-item" data-navigate="panel-library" title="情书库">
+          <span class="dock-icon"><i class="fas fa-book-open"></i></span>
+          <span class="dock-label">情书库</span>
+          <span class="dock-badge" id="dock-letters-badge">0</span>
+        </button>
+
+        <div class="dock-divider"></div>
+
+        <button class="dock-item" id="dock-sync-btn" title="同步">
+          <span class="dock-icon"><i class="fas fa-sync-alt"></i></span>
+          <span class="dock-label">同步</span>
+        </button>
+
+        <button class="dock-item" id="dock-tor-toggle" title="Tor隧道" data-role-required="admin" data-hide-if-locked="true">
+          <span class="dock-icon" id="dock-tor-icon"><i class="fas fa-user-secret"></i></span>
+          <span class="dock-label">Tor</span>
+          <span class="dock-badge" id="dock-tor-badge">离线</span>
+        </button>
+
+        <div class="dock-divider"></div>
+
+        <button class="dock-item" data-navigate="panel-launcher" title="启动器">
+          <span class="dock-icon"><i class="fas fa-rocket"></i></span>
+          <span class="dock-label">启动器</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 情书内容模态框 -->
+    <div class="modal" id="letter-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="letter-modal-title">
+        <header class="modal-header">
+          <div>
+            <p class="modal-eyebrow" id="letter-modal-meta">#0 · —</p>
+            <h3 class="modal-title" id="letter-modal-title">无题</h3>
+          </div>
+          <button class="modal-close" id="letter-modal-close" aria-label="关闭">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body" id="letter-modal-content">
+          <p class="empty-hint">内容加载中…</p>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./scripts/animations.js"></script>
+    <script type="module" src="./scripts/navigation.js"></script>
+    <script type="module" src="./scripts/app.js"></script>
+  </body>
+</html>

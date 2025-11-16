@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.tor-tmp/
+logs/
+.env
+data/*
+!data/README.md

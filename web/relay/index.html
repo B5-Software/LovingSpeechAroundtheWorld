@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中继节点 · 让爱遍布于世界角落</title>
+  <link rel="stylesheet" href="../shared/base.css" />
+  <link rel="stylesheet" href="../shared/fontawesome/all.min.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+      <div class="nav-brand">
+        <i class="fas fa-server brand-icon"></i>
+        <div>
+          <h1 class="brand-title">中继节点</h1>
+          <p class="brand-subtitle">Relay Node · 情书网络的通信枢纽</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-icon-only" id="refresh-btn" title="刷新数据">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <button class="btn-icon-only" id="theme-toggle" title="切换主题">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- 状态概览 -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-cubes"></i>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">区块链高度</p>
+          <h2 class="stat-value" id="stat-blocks">0</h2>
+          <span class="stat-change"><i class="fas fa-check-circle"></i> 已同步</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-envelope"></i>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">缓存情书</p>
+          <h2 class="stat-value" id="stat-letters">0</h2>
+          <span class="stat-change"><i class="fas fa-database"></i> 内存中</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-exchange-alt"></i>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">转发次数</p>
+          <h2 class="stat-value" id="stat-forwards">0</h2>
+          <span class="stat-change positive"><i class="fas fa-arrow-up"></i> 本次运行</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">信誉评分</p>
+          <h2 class="stat-value" id="stat-reputation">100%</h2>
+          <span class="stat-change positive"><i class="fas fa-star"></i> 优秀</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 目录注册状态 -->
+    <section class="panel">
+      <header class="panel-header">
+        <div class="panel-title-group">
+          <i class="fas fa-globe"></i>
+          <h2 class="panel-title">目录注册</h2>
+        </div>
+        <span class="badge" id="directory-status-badge">未注册</span>
+      </header>
+      <div class="panel-content">
+        <form id="directory-register-form" class="form-grid">
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-tag"></i> 中继昵称</label>
+            <input name="nickname" class="form-input" placeholder="我的中继节点" maxlength="32" />
+            <small class="form-hint">为你的中继设置一个友好的昵称</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-link"></i> 目录服务器地址</label>
+            <input name="directoryUrl" class="form-input" placeholder="http://directory.onion 或 https://..." value="" />
+            <small class="form-hint">在此注册以接受客户端的情书转发请求</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-fingerprint"></i> 节点指纹</label>
+            <input id="relay-fingerprint" class="form-input mono" readonly placeholder="自动生成" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-clock"></i> 心跳间隔（秒）</label>
+            <input name="heartbeatInterval" class="form-input" type="number" value="30" min="10" max="300" />
+          </div>
+
+          <div class="form-actions form-full">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane"></i>
+              <span>注册到目录</span>
+            </button>
+            <button type="button" class="btn btn-ghost" id="unregister-btn">
+              <i class="fas fa-times-circle"></i>
+              <span>取消注册</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 区块链同步 -->
+    <section class="panel">
+      <header class="panel-header">
+        <div class="panel-title-group">
+          <i class="fas fa-sync-alt"></i>
+          <h2 class="panel-title">区块链同步</h2>
+        </div>
+        <div class="sync-controls">
+          <span class="badge" id="sync-status-badge">待同步</span>
+          <button class="btn btn-secondary" id="sync-now-btn">
+            <i class="fas fa-cloud-download-alt"></i>
+            <span>立即同步</span>
+          </button>
+        </div>
+      </header>
+      <div class="panel-content">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label"><i class="fas fa-cube"></i> 最新区块哈希</span>
+            <code class="info-value mono" id="latest-hash">—</code>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="fas fa-history"></i> 最后同步时间</span>
+            <span class="info-value" id="last-sync-time">从未同步</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="fas fa-database"></i> 链大小</span>
+            <span class="info-value" id="chain-size">0 KB</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label"><i class="fas fa-envelope-open-text"></i> 总情书数</span>
+            <span class="info-value" id="total-letters-count">0</span>
+          </div>
+        </div>
+
+        <div class="progress-container" style="margin-top: 24px;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="sync-progress" style="width: 0%"></div>
+          </div>
+          <p class="progress-text" id="sync-progress-text">等待同步...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 转发队列 -->
+    <section class="panel">
+      <header class="panel-header">
+        <div class="panel-title-group">
+          <i class="fas fa-paper-plane"></i>
+          <h2 class="panel-title">转发队列</h2>
+        </div>
+        <button class="btn btn-ghost" id="clear-queue-btn">
+          <i class="fas fa-broom"></i>
+          <span>清空队列</span>
+        </button>
+      </header>
+      <div class="panel-content">
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-hashtag"></i> 序号</th>
+                <th><i class="fas fa-envelope"></i> 情书ID</th>
+                <th><i class="fas fa-user"></i> 发送者</th>
+                <th><i class="fas fa-clock"></i> 接收时间</th>
+                <th><i class="fas fa-info-circle"></i> 状态</th>
+              </tr>
+            </thead>
+            <tbody id="queue-tbody">
+              <tr class="empty-row">
+                <td colspan="5">
+                  <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>转发队列为空</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tor配置 -->
+    <section class="panel">
+      <header class="panel-header">
+        <div class="panel-title-group">
+          <i class="fas fa-user-secret"></i>
+          <h2 class="panel-title">Tor洋葱服务</h2>
+        </div>
+        <span class="badge" id="tor-status-badge">离线</span>
+      </header>
+      <div class="panel-content">
+        <form id="tor-config-form" class="form-grid">
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-tools"></i> Tor可执行文件</label>
+            <input name="torPath" class="form-input" placeholder="留空使用系统PATH" />
+          </div>
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-network-wired"></i> 隐藏服务端口</label>
+            <input name="hiddenServicePort" class="form-input" type="number" placeholder="4700" value="4700" />
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label"><i class="fas fa-globe"></i> 洋葱地址</label>
+            <div class="input-with-action">
+              <input id="onion-address" class="form-input mono" readonly placeholder="Tor启动后生成" />
+              <button type="button" class="btn btn-secondary" id="copy-onion-btn">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-actions form-full">
+            <button type="submit" class="btn btn-secondary">
+              <i class="fas fa-save"></i>
+              <span>保存配置</span>
+            </button>
+            <div class="btn-group">
+              <button type="button" class="btn btn-primary" id="tor-start-btn">
+                <i class="fas fa-play-circle"></i>
+                <span>启动</span>
+              </button>
+              <button type="button" class="btn btn-ghost" id="tor-stop-btn">
+                <i class="fas fa-stop-circle"></i>
+                <span>停止</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 活动日志 -->
+    <section class="panel">
+      <header class="panel-header">
+        <div class="panel-title-group">
+          <i class="fas fa-list-alt"></i>
+          <h2 class="panel-title">活动日志</h2>
+        </div>
+        <button class="btn btn-ghost" id="clear-logs-btn">
+          <i class="fas fa-trash-alt"></i>
+          <span>清空</span>
+        </button>
+      </header>
+      <div class="panel-content">
+        <div class="log-container" id="activity-logs">
+          <div class="log-entry">
+            <span class="log-time">00:00:00</span>
+            <span class="log-level info"><i class="fas fa-info-circle"></i> INFO</span>
+            <span class="log-message">中继节点已就绪，等待注册到目录</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="app-footer">
+      <span id="app-meta">B5-Software · v0.0.0</span>
+    </footer>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
