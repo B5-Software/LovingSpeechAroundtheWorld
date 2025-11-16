@@ -94,6 +94,44 @@ function parseModeFromArgs() {
   return modeArg.split('=')[1];
 }
 
+function parseModeFromEnv() {
+  return process.env.APP_MODE || process.env.MODE || null;
+}
+
+function sanitizePort(value) {
+  const num = Number.parseInt(value, 10);
+  if (Number.isInteger(num) && num > 0 && num < 65536) {
+    return num;
+  }
+  return null;
+}
+
+function getPortOverrideFromArgs(serviceId) {
+  const prefix = `--${serviceId}-port=`;
+  const arg = process.argv.find((item) => item.startsWith(prefix));
+  if (!arg) return null;
+  return sanitizePort(arg.split('=')[1]);
+}
+
+function getPortOverrideFromEnv(serviceId) {
+  const key = `${serviceId.toUpperCase()}_PORT`;
+  if (!process.env[key]) return null;
+  return sanitizePort(process.env[key]);
+}
+
+function getPreconfiguredPorts(serviceIds) {
+  const overrides = {};
+  (serviceIds || []).forEach((id) => {
+    const argPort = getPortOverrideFromArgs(id);
+    const envPort = getPortOverrideFromEnv(id);
+    const resolved = argPort ?? envPort;
+    if (resolved) {
+      overrides[id] = resolved;
+    }
+  });
+  return overrides;
+}
+
 async function promptMode() {
   const rl = readline.createInterface({ input, output });
   console.log('\n请选择要启动的模式:\n');
@@ -114,13 +152,14 @@ async function promptMode() {
   return selection.id;
 }
 
-async function promptPorts(serviceIds) {
-  if (!serviceIds?.length) {
+async function promptPorts(serviceIds, preset = {}) {
+  const pendingIds = (serviceIds || []).filter((id) => preset[id] == null);
+  if (!pendingIds.length) {
     return {};
   }
   const rl = readline.createInterface({ input, output });
   const ports = {};
-  for (const id of serviceIds) {
+  for (const id of pendingIds) {
     const service = SERVICES[id];
     if (!service) continue;
     let port;
@@ -131,8 +170,8 @@ async function promptPorts(serviceIds) {
         port = service.defaultPort;
         break;
       }
-      const parsed = Number.parseInt(trimmed, 10);
-      if (Number.isInteger(parsed) && parsed > 0 && parsed < 65536) {
+      const parsed = sanitizePort(trimmed);
+      if (parsed) {
         port = parsed;
       } else {
         console.log('端口无效，请输入 1-65535 之间的数字。');
@@ -145,7 +184,7 @@ async function promptPorts(serviceIds) {
 }
 
 (async () => {
-  let modeId = parseModeFromArgs();
+  let modeId = parseModeFromArgs() ?? parseModeFromEnv();
   if (!modeId) {
     modeId = await promptMode();
   }
@@ -155,7 +194,9 @@ async function promptPorts(serviceIds) {
     process.exitCode = 1;
     return;
   }
-  const ports = await promptPorts(mode.services);
+  const presetPorts = getPreconfiguredPorts(mode.services);
+  const promptedPorts = await promptPorts(mode.services, presetPorts);
+  const ports = { ...presetPorts, ...promptedPorts };
   console.log(`\n启动 ${mode.label} ...\n`);
   const processes = startServices(mode.services, ports);
 

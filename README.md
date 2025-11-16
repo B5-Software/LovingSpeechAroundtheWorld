@@ -51,6 +51,34 @@ node cli/index.js client keys:create --label "MyKey"
 
 完整命令可通过 `node cli/index.js --help` 查看，每个 WebUI 面板（配置、Tor、同步等）均有对应子命令，例如 `relay config:set --directory http://localhost:4600 --latency 80`、`client tor:config --path tor.exe` 等。
 
+### 非交互式启动与端口指定
+
+`npm start` 默认会提示选择模式与端口，但在自动化或远程环境中可以通过参数 / 环境变量跳过交互：
+
+- `--mode=relay` 或 `APP_MODE=relay` / `MODE=relay` 明确指定模式。
+- `--relay-port=4710`、`--directory-port=4605`、`--client-port=4810` 或者设置 `RELAY_PORT`、`DIRECTORY_PORT`、`CLIENT_PORT` 环境变量即可覆盖端口。
+
+例如：
+
+```pwsh
+APP_MODE=relay RELAY_PORT=4710 npm start
+# 或者
+npm start -- --mode=directory-relay-client --directory-port=4601 --relay-port=4701 --client-port=4801
+```
+
+### PM2 自启动
+
+仓库提供 `pm2.config.cjs`，预设了 “仅 Relay” 与 “三节点全家桶” 两种场景，并在配置中写好各服务端口。常用操作：
+
+```pwsh
+pm2 start pm2.config.cjs --only lovingspeech-relay
+pm2 start pm2.config.cjs --only lovingspeech-full-stack
+pm2 save
+pm2 startup  # 可选：注册为系统服务
+```
+
+如需自定义，只需复制一个条目并改写 `APP_MODE` 与 `DIRECTORY_PORT` / `RELAY_PORT` / `CLIENT_PORT` 环境变量，即可让 PM2 以特定模式和端口自启。
+
 ## Tor 配置
 
 每个模式在 WebUI 的 “Tor 连接” 面板或 CLI (`<mode> tor:*`) 中可：
