@@ -164,15 +164,23 @@ class DirectoryApp {
       tbody.innerHTML = relays.map((relay) => {
         const relayKey = this.buildRelayKey(relay);
         this.relayLookup.set(relayKey, relay);
-        const relayAddress = relay.publicUrl || relay.onion || relay.id || '未提供';
+        const relayAddress = relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id || '未提供';
+        const reportedAddress = relay.reportedPublicUrl && relay.reportedPublicUrl !== relayAddress
+          ? relay.reportedPublicUrl
+          : null;
         const reputation = typeof relay.reputation === 'number'
           ? relay.reputation
           : Math.round((relay.reachability || 0) * 100);
-        const latency = relay.latencyMs ?? relay.latency ?? '—';
+        const latency = typeof relay.latencyMs === 'number'
+          ? relay.latencyMs
+          : (typeof relay.latency === 'number' ? relay.latency : '—');
         const fingerprintShort = (relay.fingerprint || '未知').substring(0, 16);
         const nickname = relay.nickname || relayAddress;
         const lastHeartbeat = relay.lastHeartbeat || relay.lastSeen;
         const isOnline = relay.isOnline ?? Boolean(relay.lastSeen);
+        const addressCell = reportedAddress
+          ? `<code class="mono" title="原始上报: ${reportedAddress}">${relayAddress}</code>`
+          : `<code class="mono">${relayAddress}</code>`;
         
         return `
           <tr data-relay-key="${relayKey}">
@@ -183,7 +191,7 @@ class DirectoryApp {
               </span>
             </td>
             <td><strong>${nickname}</strong></td>
-            <td><code class="mono">${relayAddress}</code></td>
+            <td>${addressCell}</td>
             <td><code class="mono">${fingerprintShort}...</code></td>
             <td>
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -331,16 +339,39 @@ class DirectoryApp {
       return;
     }
 
+    const latencyLabel = typeof relay.latencyMs === 'number'
+      ? `${relay.latencyMs}ms`
+      : (typeof relay.latency === 'number' ? `${relay.latency}ms` : '未知');
+    const reachabilityLabel = `${Math.round((relay.reachability || 0) * 100)}%`;
+    const metricsSampled = this.formatTime(relay.metricsSampledAt);
+    const metricsSource = relay.metricsSource || '目录探测';
+    const metricsError = relay.metricsError ? `<br>异常: ${relay.metricsError}` : '';
+    const metricsNotes = relay.metricsNotes ? `<br>备注: ${relay.metricsNotes}` : '';
+
     const chainInfo = relay.chainSummary
       ? `区块高度: ${relay.chainSummary.length || 0}<br>最新哈希: <code class="mono">${(relay.chainSummary.latestHash || '—').substring(0, 48)}...</code>`
       : '暂无链路数据';
 
     const metrics = `
       <strong>网络指标</strong><br>
-      延迟: ${relay.latencyMs ?? relay.latency ?? '未知'}ms<br>
-      可达性: ${Math.round((relay.reachability || 0) * 100)}%<br>
-      GFW屏蔽: ${relay.gfwBlocked ? '是' : '否'}
+      延迟: ${latencyLabel}<br>
+      可达性: ${reachabilityLabel}<br>
+      GFW屏蔽: ${relay.gfwBlocked ? '是' : '否'}<br>
+      最近采样: ${metricsSampled}<br>
+      数据来源: ${metricsSource}
+      ${metricsError}
+      ${metricsNotes}
     `;
+
+    const connectionDetails = relay.connectionMeta
+      ? `
+        <strong>连接来源</strong><br>
+        最近上报: ${this.formatTime(relay.connectionMeta.resolvedAt)}<br>
+        客户端IP: ${relay.lastSeenIp || relay.connectionMeta.clientAddress || '未知'}<br>
+        声称URL: <code class="mono">${relay.reportedPublicUrl || relay.connectionMeta.reportedPublicUrl || '—'}</code><br>
+        解析URL: <code class="mono">${relay.resolvedPublicUrl || relay.connectionMeta.resolvedPublicUrl || relay.publicUrl || '—'}</code>
+      `
+      : '暂未记录连接来源';
 
     const modal = document.createElement('div');
     modal.className = 'relay-modal';
@@ -365,7 +396,7 @@ class DirectoryApp {
             </div>
             <div class="detail-item full">
               <label>地址</label>
-              <code class="mono">${relay.publicUrl || relay.onion || relay.id}</code>
+              <code class="mono">${relay.resolvedPublicUrl || relay.publicUrl || relay.onion || relay.id}</code>
             </div>
             <div class="detail-item full">
               <label>指纹</label>
@@ -386,6 +417,10 @@ class DirectoryApp {
             <div class="detail-item full">
               <label>性能指标</label>
               <div>${metrics}</div>
+            </div>
+            <div class="detail-item full">
+              <label>连接信息</label>
+              <div>${connectionDetails}</div>
             </div>
           </div>
         </div>
@@ -466,7 +501,14 @@ class DirectoryApp {
 
   // 工具函数
   buildRelayKey(relay) {
-    return String(relay?.publicUrl || relay?.onion || relay?.id || relay?.fingerprint || 'relay');
+    return String(
+      relay?.resolvedPublicUrl
+      || relay?.publicUrl
+      || relay?.onion
+      || relay?.id
+      || relay?.fingerprint
+      || 'relay'
+    );
   }
 
   formatUptime(seconds) {

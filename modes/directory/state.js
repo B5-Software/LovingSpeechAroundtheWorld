@@ -40,7 +40,12 @@ export class DirectoryState {
     const state = await this.store.get();
     let existing = state.relays.find((relay) => relay.onion === payload.onion);
     if (existing) {
-      existing = { ...existing, ...payload, lastSeen: new Date().toISOString() };
+      existing = {
+        ...existing,
+        ...payload,
+        connectionMeta: { ...existing.connectionMeta, ...payload.connectionMeta },
+        lastSeen: new Date().toISOString()
+      };
     } else {
       const resolvedFingerprint = payload.fingerprint || this.generateFingerprint(payload.onion);
       existing = {
@@ -62,6 +67,32 @@ export class DirectoryState {
     const relays = state.relays.map((relay) => (relay.onion === existing.onion ? existing : relay));
     await this.store.update(() => ({ relays, canonicalManifest }));
     return existing;
+  }
+
+  async updateRelayMetrics(onion, metricsUpdate = {}) {
+    const sampledAt = metricsUpdate.metricsSampledAt || new Date().toISOString();
+    await this.store.update((data) => {
+      const relays = data.relays.map((relay) => {
+        if (relay.onion !== onion) return relay;
+        return {
+          ...relay,
+          latencyMs: metricsUpdate.latencyMs ?? relay.latencyMs ?? null,
+          reachability:
+            typeof metricsUpdate.reachability === 'number'
+              ? metricsUpdate.reachability
+              : relay.reachability ?? null,
+          gfwBlocked:
+            typeof metricsUpdate.gfwBlocked === 'boolean'
+              ? metricsUpdate.gfwBlocked
+              : relay.gfwBlocked ?? false,
+          metricsSampledAt: sampledAt,
+          metricsSource: metricsUpdate.metricsSource || 'directory-probe',
+          metricsNotes: metricsUpdate.metricsNotes ?? relay.metricsNotes ?? null,
+          metricsError: metricsUpdate.metricsError ?? null
+        };
+      });
+      return { ...data, relays };
+    });
   }
 
   updateCanonicalManifest(currentManifest, candidateSummary = {}) {
