@@ -558,6 +558,7 @@ class DirectoryApp {
 
   ensureBracketedHost(host) {
     if (!host) return null;
+    // Only wrap IPv6 addresses in brackets
     if (host.includes(':') && !host.startsWith('[')) {
       return `[${host}]`;
     }
@@ -567,10 +568,12 @@ class DirectoryApp {
   buildForwardedUrl(address, port, protocol = 'http') {
     if (!address) return null;
     const safeProto = protocol?.toLowerCase().replace(/:$/, '') || 'http';
-    const bracketedHost = this.ensureBracketedHost(address);
+    // Only bracket IPv6, leave IPv4 as-is
+    const isIPv6 = address.includes(':');
+    const hostPart = isIPv6 ? this.ensureBracketedHost(address) : address;
     const normalizedPort = port ? String(port).trim() : '';
     const portSegment = normalizedPort ? `:${normalizedPort}` : '';
-    return `${safeProto}://${bracketedHost}${portSegment}`;
+    return `${safeProto}://${hostPart}${portSegment}`;
   }
 
   formatUptime(seconds) {
